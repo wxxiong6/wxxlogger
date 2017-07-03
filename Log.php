@@ -1,4 +1,6 @@
 <?php
+namespace attr;
+use Exception;
 /**
  * 日志类
  * 需要手动创建日志目录,默认日志文件名是application.log。
@@ -128,7 +130,7 @@ class Log
     {
         $this->_logPath=realpath($value);
         if($this->_logPath===false || !is_dir($this->_logPath) || !is_writable($this->_logPath))
-            throw new Exception('logPath "{path}" does not point to a valid directory.
+            throw new Exception('logPath'."{$value}".' does not point to a valid directory.
 			 Make sure the directory exists and is writable by the Web server process.');
     }
 
@@ -227,8 +229,11 @@ class Log
      * @param string $category category of the message .
      * @see getLogs
      */
-    public static function write($message,  $level='info', $logInfo='')
+    public static function write($message,  $level='info', $logInfo=NULL)
     {
+        if(is_null($logInfo)){
+            $logInfo = self::getLogInfo();
+        }
         $obj = self::getInstance();
         $obj->_logs[]=array($message,$level,microtime(true), $logInfo);
         $obj->_logCount++;
@@ -266,7 +271,7 @@ class Log
      * @param integer $time timestamp
      * @return string formatted message
      */
-    protected function formatLogMessage($message,$level,$time,$logInfoArr)
+    protected function formatLogMessage($message, $level, $time, $logInfoArr)
     {
         //获取IP
         $ipstr = '0.0.0.0';
@@ -298,6 +303,7 @@ class Log
                 flock($fp,LOCK_EX);
                 foreach($logs as $log)
                     fwrite($fp,$this->formatLogMessage($log[0],$log[1],$log[2],$log[3]));
+
                     flock($fp,LOCK_UN);
                     fclose($fp);
                 } catch (Exception $e) {
