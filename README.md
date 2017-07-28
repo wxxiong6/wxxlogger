@@ -20,5 +20,6 @@ Log::debug('debug');
 Log::info('info');
 ```
 ## error
+```PHP
 Log::error('error');
 ```
