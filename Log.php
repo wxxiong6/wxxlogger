@@ -16,7 +16,7 @@ class Log
     /**
      *  代表发生了最严重的错误，会导致整个服务停止（或者需要整个服务停止）。
      *  简单地说就是服务死掉了。
-     * @var unknown
+     * @var string
      */
     const LEVEL_FATAL = 'fatal';
 
@@ -184,42 +184,45 @@ class Log
             $this->_maxLogFiles=1;
     }
 
+
     /**
      * warn
-     * @param string $value1
-     * @param string $value2
+     * @param string $value
+     * @param string $category
      */
-    public static function warn ($value)
+    public static function warn ($value, $category = '')
     {
-        return self::write($value, self::LEVEL_WARN, self:: getLogInfo());
+        return self::write($value, self::LEVEL_WARN, self:: getLogInfo(1, $category));
     }
 
     /**
      * info
-     * @param string $value1
-     * @param string $value2
+     * @param string $value
+     * @param string $category
      */
-    public static function info ($value)
+    public static function info ($value, $category = '')
     {
-        return self::write($value, self::LEVEL_INFO, self:: getLogInfo());
+        return self::write($value, self::LEVEL_INFO,  $category);
     }
 
     /**
      * error
-     * @param string $value1
+     * @param string $value
+     * @param string $category
      */
-    public static function error($value)
+    public static function error($value, $category = '')
     {
-        return self::write($value, self::LEVEL_ERROR, self:: getLogInfo());
+        return self::write($value, self::LEVEL_ERROR,  $category);
     }
 
     /**
-     * 错误日志
-     * @param string $value1
+     * debug
+     * @param string $value
+     * @param string $category
      */
-    public static function debug($value)
+    public static function debug($value, $category = '')
     {
-        return self::write($value, self::LEVEL_DEBUG, self:: getLogInfo());
+        return self::write($value, self::LEVEL_DEBUG,  $category);
     }
 
     /**
@@ -229,11 +232,9 @@ class Log
      * @param string $category category of the message .
      * @see getLogs
      */
-    public static function write($message,  $level='info', $logInfo=NULL)
+    public static function write($message,  $level='info', $category)
     {
-        if(is_null($logInfo)){
-            $logInfo = self::getLogInfo();
-        }
+        $logInfo = self::getLogInfo(1, $category);
         $obj = self::getInstance();
         $obj->_logs[]=array($message,$level,microtime(true), $logInfo);
         $obj->_logCount++;
@@ -278,7 +279,7 @@ class Log
         if (isset($_SERVER["SERVER_ADDR"])){
             $ipstr = $_SERVER["SERVER_ADDR"];
         }
-        return $this->udate('y-m-d H:i:s.u', $time)." <".$level.">: [".$logInfoArr['func']."] [".getmypid()."] [".$ipstr."] ".
+        return $this->udate('y-m-d H:i:s.u', $time)." <".$level.">: [".$logInfoArr['category']."] [".getmypid()."] [".$ipstr."] ".
             $logInfoArr['file']." line (".$logInfoArr['line']."):". $message ." \n";
     }
 
@@ -334,46 +335,22 @@ class Log
             rename($file,$file.'.1');
     }
 
-
     /**
      * 返回 文件名、行号和函数名
-     * @param $skipLevel
+     * @param number $skipLevel
+     * @param string $category
+     * @return array
      */
-    private static function getLogInfo ($skipLevel = 1)
+    private static function getLogInfo ($skipLevel = 1, $category = '')
     {
-        $trace_arr = debug_backtrace();
-        for ($i = 0; $i < $skipLevel; $i ++)
-        {
-            array_shift($trace_arr);
+        $trace = debug_backtrace();
+        $info = array_pop($trace); 
+        if(!empty($category))
+            $info['category'] = $category;
+        else {
+            $info['category'] = $info['class'].$info['type'].$info['function'];
         }
-        $tmp_arr1 = array_shift($trace_arr);
-        if (! empty($trace_arr))
-        {
-            $tmp_arr2 = array_shift($trace_arr);
-        }
-        else
-        {
-            $tmp_arr2 = array(
-                'function' => "MAIN" //主流程 __MAIN__
-            );
-        }
-        if (isset($tmp_arr2['class'])) // 类的方法
-        {
-            $func = $tmp_arr2['class'] . $tmp_arr2['type'] . $tmp_arr2['function'];
-        }
-        else
-        {
-            $func = $tmp_arr2['function'];
-        }
-        if(!empty($tmp_arr1['file'])){
-            $path = pathinfo($tmp_arr1['file']);
-            $tmp_arr1['file'] = $path['basename'];
-        }
-        return array(
-            'line' => $tmp_arr1['line'] ,
-            'file' => $tmp_arr1['file'] ,
-            'func' => $func
-        );
+        return  $info;
     }
 
     /**
