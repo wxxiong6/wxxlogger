@@ -13,7 +13,7 @@ use Exception;
 class Log
 {
 
-    /**
+   /**
      *  代表发生了最严重的错误，会导致整个服务停止（或者需要整个服务停止）。
      *  简单地说就是服务死掉了。
      * @var string
@@ -47,32 +47,21 @@ class Log
      */
     const LEVEL_DEBUG   = 'debug';
 
-
     /**
-     * @var integer how many messages should be logged before they are flushed to destinations.
-     * Defaults to 10,000, meaning for every 10,000 messages
+     * @var integer 日志内存最大行数
      */
     public $autoFlush = 10000;
 
     /**
-     * @var array log messages
+     * @var array 日志信息
      */
-    private $_logs = array();
+    private $_logs = [];
 
     /**
-     * @var integer number of log messages
+     * @var integer 数量的日志消息
      */
     private $_logCount = 0;
 
-    /**
-     * @var array log levels for filtering (used when filtering)
-     */
-    private $_levels;
-
-    /**
-     * @var array log categories for filtering (used when filtering)
-     */
-    private $_categories;
 
     /**
      * @var integer maximum log file size
@@ -80,19 +69,19 @@ class Log
     private $_maxFileSize = 1024; // in KB
 
     /**
-     * @var integer number of log files used for rotation
+     * @var integer 最大日志文件数
      */
     private $_maxLogFiles = 5;
 
     /**
-     * @var string directory storing log files
+     * @var string 日志文件目录
      */
     private $_logPath;
 
     /**
-     * @var string log file name
+     * @var string 日志文件名称
      */
-    private $_logFile='application.log';
+    private $_logFile = 'application.log';
 
     /**
      * @var object
@@ -123,8 +112,9 @@ class Log
     }
 
     /**
-     * @param string $value directory for storing log files.
-     * @throws CException if the path is invalid
+     *  设置日志目录
+     * @param $value directory for storing log files.
+     * @throws Exception if the path is invalid
      */
     public function setLogPath($value)
     {
@@ -135,7 +125,7 @@ class Log
     }
 
     /**
-     * @return string log file name. Defaults to 'application.log'.
+     * @return string 日志文件名称 默认 'application.log'.
      */
     public function getLogFile()
     {
@@ -143,7 +133,7 @@ class Log
     }
 
     /**
-     * @param string $value log file name
+     * @param string $value 日志文件名称
      */
     public function setLogFile($value)
     {
@@ -151,7 +141,7 @@ class Log
     }
 
     /**
-     * @return integer maximum log file size in kilo-bytes (KB). Defaults to 1024 (1MB).
+     * @return integer maximum 以千字节(KB)的日志文件大小。默认为1024(1 mb)。
      */
     public function getMaxFileSize()
     {
@@ -168,7 +158,7 @@ class Log
     }
 
     /**
-     * @return integer number of files used for rotation. Defaults to 5.
+     * @return integer number 最大文件数
      */
     public function getMaxLogFiles()
     {
@@ -176,14 +166,13 @@ class Log
     }
 
     /**
-     * @param integer $value number of files used for rotation.
+     * @param integer $value 设置最大日志文件数
      */
     public function setMaxLogFiles($value)
     {
         if(($this->_maxLogFiles=(int)$value)<1)
             $this->_maxLogFiles=1;
     }
-
 
     /**
      * warn
@@ -226,7 +215,7 @@ class Log
     }
 
     /**
-     * Logs a message.
+     * 定入日志消息
      * @param string $message message to be logged
      * @param string $level level of the message (e.g. 'Trace', 'Warning', 'Error').
      * @param string $category category of the message .
@@ -246,7 +235,7 @@ class Log
     }
 
     /**
-     * Removes all recorded messages from the memory.
+     * 从内存中删除所有记录的消息。
      */
     public function flush()
     {
@@ -254,23 +243,18 @@ class Log
         $this->_logs=array();
         $this->_logCount=0;
     }
-    /**
-     * Raises an <code>onFlush</code> event.
-     * @param CEvent $event the event parameter
-     * @since 1.1.0
-     */
+
     public function onFlush()
     {
         $this->processLogs($this->_logs);
     }
 
     /**
-     * Formats a log message given different fields.
-     * @param string $message message content
-     * @param integer $level message level
-     * @param string $category message category
-     * @param integer $time timestamp
-     * @return string formatted message
+     * @param $message 日志信息
+     * @param $level      日志级别
+     * @param $time      时间
+     * @param $logInfoArr 日志信息
+     * @return string
      */
     protected function formatLogMessage($message, $level, $time, $logInfoArr)
     {
@@ -284,12 +268,11 @@ class Log
     }
 
     /**
-     * Saves log messages in files.
-     * @param array $logs list of log messages
-     * @param unknown $logs
+     * 保存日志信息到文件
+     * @param array $logs      日志信息
      * @throws Exception
      */
-    protected function processLogs($logs)
+    protected function processLogs(array $logs)
     {
         $logFile=$this->getLogPath().DIRECTORY_SEPARATOR.$this->getLogFile();
         try {
@@ -300,16 +283,16 @@ class Log
             if(filesize($logFile)>$this->getMaxFileSize()*1024)
                 $this->rotateFiles();
 
-                $fp=fopen($logFile,'a');
-                flock($fp,LOCK_EX);
-                foreach($logs as $log)
-                    fwrite($fp,$this->formatLogMessage($log[0],$log[1],$log[2],$log[3]));
+            $fp=fopen($logFile,'a');
+            flock($fp,LOCK_EX);
+            foreach($logs as $log)
+                fwrite($fp,$this->formatLogMessage($log[0],$log[1],$log[2],$log[3]));
 
-                    flock($fp,LOCK_UN);
-                    fclose($fp);
-                } catch (Exception $e) {
-                    throw new Exception('log error:'.$e->getMessage());
-                }
+            flock($fp,LOCK_UN);
+            fclose($fp);
+        } catch (Exception $e) {
+            throw new Exception('log error:'.$e->getMessage());
+        }
     }
 
     /**
@@ -324,11 +307,10 @@ class Log
             $rotateFile=$file.'.'.$i;
             if(is_file($rotateFile))
             {
-                // suppress errors because it's possible multiple processes enter into this section
                 if($i===$max)
                     unlink($rotateFile);
                 else
-                  rename($rotateFile,$file.'.'.($i+1));
+                    rename($rotateFile,$file.'.'.($i+1));
             }
         }
         if(is_file($file))
@@ -336,15 +318,14 @@ class Log
     }
 
     /**
-     * 返回 文件名、行号和函数名
-     * @param number $skipLevel
+     *  生成文件名、行号和函数名
      * @param string $category
-     * @return array
+     * @return mixed
      */
-    private static function getLogInfo ($skipLevel = 1, $category = '')
+    private static function getLogInfo ( $category = '')
     {
         $trace = debug_backtrace();
-        $info = array_pop($trace); 
+        $info = array_pop($trace);
         if(!empty($category))
             $info['category'] = $category;
         else {
@@ -361,19 +342,13 @@ class Log
      */
     private function udate($strFormat = 'u', $uTimeStamp = null)
     {
-        // If the time wasn't provided then fill it in
         if (is_null($uTimeStamp))
         {
             $uTimeStamp = microtime(true);
         }
-        // Round the time down to the second
         $dtTimeStamp = floor($uTimeStamp);
-        // Determine the millisecond value
         $intMilliseconds = round(($uTimeStamp - $dtTimeStamp) * 1000000);
-        // Format the milliseconds as a 6 character string
         $strMilliseconds = str_pad($intMilliseconds, 6, '0', STR_PAD_LEFT);
-        // Replace the milliseconds in the date format string
-        // Then use the date function to process the rest of the string
         return date(preg_replace('`(?<!\\\\)u`', $strMilliseconds, $strFormat), $dtTimeStamp);
     }
 
