@@ -181,7 +181,7 @@ class Log
      */
     public static function warn ($value, $category = '')
     {
-        return self::write($value, self::LEVEL_WARN, self:: getLogInfo(1, $category));
+        return self::write($value, self::LEVEL_WARN, $category);
     }
 
     /**
@@ -215,7 +215,7 @@ class Log
     }
 
     /**
-     * 定入日志消息
+     * 写入日志消息
      * @param string $message message to be logged
      * @param string $level level of the message (e.g. 'Trace', 'Warning', 'Error').
      * @param string $category category of the message .
