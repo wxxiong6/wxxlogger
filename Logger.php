@@ -1,5 +1,5 @@
 <?php
-namespace attr;
+namespace Logger;
 use Exception;
 /**
  * 日志类
@@ -10,7 +10,7 @@ use Exception;
  * @author    wxxiong@gmail.com
  * @version   v1.2
  */
-class Log
+class Logger
 {
 
    /**
