@@ -1,19 +1,19 @@
 <?php
 namespace Logger;
 use Exception;
+<?php
 /**
  * 日志类
  * 需要手动创建日志目录,默认日志文件名是application.log。
+ *  设置配置文件
+ *  Log::getInstance()->setConfig();
  *
- * 设置日志目录 Log::getInstance()->setLogPath(__DIR__.'/logs');
- *
- * @author    wxxiong@gmail.com
  * @version   v1.2
  */
 class Logger
 {
 
-   /**
+    /**
      *  代表发生了最严重的错误，会导致整个服务停止（或者需要整个服务停止）。
      *  简单地说就是服务死掉了。
      * @var string
@@ -62,7 +62,10 @@ class Logger
      */
     private $_logCount = 0;
 
-
+    /**
+     * @var int 限制返回堆栈帧的数量
+     */
+    private $_traceLevel = 9;
     /**
      * @var integer maximum log file size
      */
@@ -88,8 +91,19 @@ class Logger
      */
     private static $_instance;
 
-    public function __construct(){}
+    private function __construct(){}
+    private function __clone(){}
+    
+    public function __set($name, $value)
+    {
+        $property = '_'.$name;
+        $this->$property = $value;
+    }
 
+    public function __get($name)
+    {
+        return $this->$name;
+    }
     /**
      * 获取对象
      * @return object
@@ -99,6 +113,19 @@ class Logger
             self::$_instance = new self;
         }
         return self::$_instance;
+    }
+
+    /**
+     * 设置配置文件
+     * @param array $config
+     */
+    public function setConfig(array $config){
+        foreach ($config as $key => $val){
+            $func = 'set'.ucfirst($key);
+            if(method_exists(__CLASS__, $func)){
+                call_user_func_array([__CLASS__, $func], [$val]);
+            }
+        }
     }
 
     /**
@@ -118,7 +145,7 @@ class Logger
      */
     public function setLogPath($value)
     {
-        $this->_logPath=realpath($value);
+        $this->_logPath = realpath($value);
         if($this->_logPath===false || !is_dir($this->_logPath) || !is_writable($this->_logPath))
             throw new Exception('logPath'."{$value}".' does not point to a valid directory.
 			 Make sure the directory exists and is writable by the Web server process.');
@@ -170,14 +197,15 @@ class Logger
      */
     public function setMaxLogFiles($value)
     {
-        if(($this->_maxLogFiles=(int)$value)<1)
-            $this->_maxLogFiles=1;
+        if(($this->_maxLogFiles = (int)$value)  < 1)
+            $this->_maxLogFiles = 1;
     }
 
     /**
      * warn
      * @param string $value
      * @param string $category
+     * @return bool
      */
     public static function warn ($value, $category = '')
     {
@@ -186,8 +214,9 @@ class Logger
 
     /**
      * info
-     * @param string $value
+     * @param $value
      * @param string $category
+     * @return bool
      */
     public static function info ($value, $category = '')
     {
@@ -196,8 +225,9 @@ class Logger
 
     /**
      * error
-     * @param string $value
+     * @param $value
      * @param string $category
+     * @return bool
      */
     public static function error($value, $category = '')
     {
@@ -205,9 +235,10 @@ class Logger
     }
 
     /**
-     * debug
-     * @param string $value
+     *  debug
+     * @param $value
      * @param string $category
+     * @return bool
      */
     public static function debug($value, $category = '')
     {
@@ -216,22 +247,22 @@ class Logger
 
     /**
      * 写入日志消息
-     * @param string $message message to be logged
-     * @param string $level level of the message (e.g. 'Trace', 'Warning', 'Error').
-     * @param string $category category of the message .
-     * @see getLogs
+     * @param $message
+     * @param string $level
+     * @param $category
+     * @return bool
      */
-    public static function write($message,  $level='info', $category)
+    public static function write($message,  $level = self::LEVEL_INFO, $category)
     {
-        $logInfo = self::getLogInfo(1, $category);
         $obj = self::getInstance();
-        $obj->_logs[]=array($message,$level,microtime(true), $logInfo);
+        $obj->_logs[] = $obj->getLogInfo($message,  $level, $category);
         $obj->_logCount++;
-        if($obj->autoFlush>0 && $obj->_logCount>=$obj->autoFlush){  //日志行数
+        if($obj->autoFlush > 0 && $obj->_logCount >= $obj->autoFlush){  //日志行数
             $obj->flush();
         } elseif(intval(memory_get_usage()/1024) >= $obj->_maxFileSize){  //日志内存数
             $obj->flush();
         }
+        return true;
     }
 
     /**
@@ -240,7 +271,7 @@ class Logger
     public function flush()
     {
         $this->onFlush();
-        $this->_logs=array();
+        $this->_logs = [];
         $this->_logCount=0;
     }
 
@@ -250,21 +281,28 @@ class Logger
     }
 
     /**
-     * @param $message 日志信息
-     * @param $level      日志级别
-     * @param $time      时间
-     * @param $logInfoArr 日志信息
+     * 格式化日志信息
+     * @param $message
+     * @param $level
+     * @param $category
+     * @param $time
+     * @param $file
+     * @param $line
+     * @param $traces
      * @return string
      */
-    protected function formatLogMessage($message, $level, $time, $logInfoArr)
+    protected function formatLogMessage($message, $level,  $category, $time, $file, $line, $traces)
     {
         //获取IP
-        $ipstr = '0.0.0.0';
+        $ipAddress = '0.0.0.0';
         if (isset($_SERVER["SERVER_ADDR"])){
-            $ipstr = $_SERVER["SERVER_ADDR"];
+            $ipAddress = $_SERVER["SERVER_ADDR"];
         }
-        return $this->udate('y-m-d H:i:s.u', $time)." <".$level.">: [".$logInfoArr['category']."] [".getmypid()."] [".$ipstr."] ".
-            $logInfoArr['file']." line (".$logInfoArr['line']."):". $message ." \n";
+        //17-11-08 10:32:55.189521 <debug>: [Yaf\Application->run] [67720] [127.0.0.1]:ddd
+        if($sessionId = session_id()  === '')
+            $sessionId = getmypid();
+
+        return  sprintf("%s<%s>:[%s][%s][%s] %s(line %s )   %s\n", $this->udate('y-m-d H:i:s.u', $time), $level, $category, $sessionId, $ipAddress, $file, $line, $message);
     }
 
     /**
@@ -280,13 +318,13 @@ class Logger
             {
                 touch($logFile);
             }
-            if(filesize($logFile)>$this->getMaxFileSize()*1024)
+            if(filesize($logFile) > $this->getMaxFileSize()*1024)
                 $this->rotateFiles();
 
-            $fp=fopen($logFile,'a');
+            $fp = fopen($logFile,'a');
             flock($fp,LOCK_EX);
             foreach($logs as $log)
-                fwrite($fp,$this->formatLogMessage($log[0],$log[1],$log[2],$log[3]));
+                fwrite($fp,$this->formatLogMessage($log[0], $log[1], $log[2], $log[3], $log[4], $log[5], $log[6]));
 
             flock($fp,LOCK_UN);
             fclose($fp);
@@ -318,27 +356,55 @@ class Logger
     }
 
     /**
-     *  生成文件名、行号和函数名
+     * 生成文件名、行号和函数名
+     * @param $message
+     * @param string $level
      * @param string $category
-     * @return mixed
+     * @return array
      */
-    private static function getLogInfo ( $category = '')
+    protected  function getLogInfo ($message,  $level = 'info', $category = '')
     {
-        $trace = debug_backtrace();
-        $info = array_pop($trace);
-        if(!empty($category))
-            $info['category'] = $category;
-        else {
-            $info['category'] = $info['class'].$info['type'].$info['function'];
+        $file = '';
+        $line = '';
+        $time = microtime(true);
+        $traces = [];
+        if ($this->_traceLevel > 0) {
+            $count = 0;
+            $ts = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
+            array_pop($ts);
+            foreach ($ts as $trace) {
+                if (isset($trace['file'], $trace['line']) &&  strpos($trace['file'], __FILE__) !== 0) {
+                    unset($trace['object'], $trace['args']);
+                    $traces[] = $trace;
+                    if (++$count >= $this->_traceLevel) {
+                        break;
+                    }
+                } else if(!isset($trace['file'], $trace['line'])){
+                    $traces[] = $trace;
+                    if (++$count >= $this->_traceLevel) {
+                        break;
+                    }
+                }
+            }
         }
-        return  $info;
+
+        if(!empty($category)){
+            $category = $category;
+        }else if(!empty($traces[1])){
+            $file =  $traces[0]['file'];
+            $line =  $traces[0]['line'];
+            $category = $traces[1]['class'].$traces[1]['type'].$traces[1]['function'];
+        } else {
+            $category = '-';
+        }
+        return  [$message, $level, $category, $time, $file, $line, $traces];
     }
 
     /**
-     *  毫秒
+     * 毫秒
      * @param string $strFormat
-     * @param unknown $uTimeStamp
-     * @return string
+     * @param null $uTimeStamp
+     * @return false|string
      */
     private function udate($strFormat = 'u', $uTimeStamp = null)
     {
@@ -346,10 +412,11 @@ class Logger
         {
             $uTimeStamp = microtime(true);
         }
-        $dtTimeStamp = floor($uTimeStamp);
-        $intMilliseconds = round(($uTimeStamp - $dtTimeStamp) * 1000000);
-        $strMilliseconds = str_pad($intMilliseconds, 6, '0', STR_PAD_LEFT);
-        return date(preg_replace('`(?<!\\\\)u`', $strMilliseconds, $strFormat), $dtTimeStamp);
+        $arrTimeStamp = explode('.',$uTimeStamp,2);
+        $intMilliseconds = array_pop($arrTimeStamp);
+
+        $strMilliseconds = str_pad($intMilliseconds, 4, '0', STR_PAD_LEFT);
+        return date(preg_replace('`(?<!\\\\)u`', $strMilliseconds, $strFormat), $arrTimeStamp[0]);
     }
 
     public function __destruct(){
@@ -357,3 +424,4 @@ class Logger
             $this->flush();
     }
 }
+
