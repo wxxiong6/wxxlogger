@@ -1,7 +1,7 @@
 <?php
 namespace Logger;
 use Exception;
-<?php
+
 /**
  * 日志类
  * 需要手动创建日志目录,默认日志文件名是application.log。
@@ -93,7 +93,7 @@ class Logger
 
     private function __construct(){}
     private function __clone(){}
-    
+
     public function __set($name, $value)
     {
         $property = '_'.$name;
@@ -302,7 +302,7 @@ class Logger
         if($sessionId = session_id()  === '')
             $sessionId = getmypid();
 
-        return  sprintf("%s<%s>:[%s][%s][%s] %s(line %s )   %s\n", $this->udate('y-m-d H:i:s.u', $time), $level, $category, $sessionId, $ipAddress, $file, $line, $message);
+        return  sprintf("%s<%s>:[%s][%s][%s] %s(line %s): %s\n", $this->udate('y-m-d H:i:s.u', $time), $level, $category, $sessionId, $ipAddress, $file, $line, $message);
     }
 
     /**
@@ -424,4 +424,5 @@ class Logger
             $this->flush();
     }
 }
+
 
