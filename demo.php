@@ -1,16 +1,16 @@
 <?php
-include __DIR__."/Log.php";
+include __DIR__."/Logger.php";
 
 
 //设置日志目录
-Log::getInstance()->setLogPath(__DIR__.'/logs');
+Logger::getInstance()->setLogPath(__DIR__.'/logs');
 
 
 //debug
-Log::debug('debug');
+Logger::debug('debug');
 
 //info
-Log::info('info');
+Logger::info('info');
 
 //error
-Log::error('error');
+Logger::error('error');
