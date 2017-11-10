@@ -16,10 +16,5 @@
     "require": {
         "php": ">=5.4"
     },
-     "license": "MIT",
-     "autoload": {
-            "psr-4": {
-                "wxxlogger": "/"
-            }
-        }
+     "license": "MIT"
 }
