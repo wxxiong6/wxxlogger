@@ -1,0 +1,26 @@
+{
+    "name": "wxxiong6/wxxlogger",
+    "description": "日志分级、高性能、自动定位位置",
+   "keywords": [
+    "php日志",
+    "日志",
+    "logger"
+  ],
+    "minimum-stability": "stable",
+    "authors": [
+        {
+            "name": "xwx",
+            "email": "wxxiong6@gmail.com"
+        }
+    ],
+    "require": {
+
+        "php": ">=5.4"
+    },
+     "license": "MIT",
+     "autoload": {
+            "psr-4": {
+                "wxxlogger": "/"
+            }
+        }
+}
