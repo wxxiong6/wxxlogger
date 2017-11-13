@@ -15,7 +15,7 @@
     ],
   "autoload": {
     "psr-4": {
-      "Wxxiong6\\WxxLogger\\": "wxxiong6/wxxLogger/"
+      "Wxxiong6\\WxxLogger\\": ""
     }
   },
     "require": {
