@@ -13,8 +13,14 @@
             "email": "wxxiong6@gmail.com"
         }
     ],
+  "autoload": {
+    "psr-4": {
+      "Wxxiong6\\WxxLogger\\": "wxxiong6/wxxLogger/"
+    }
+  },
     "require": {
         "php": ">=5.4"
     },
      "license": "MIT"
 }
+
