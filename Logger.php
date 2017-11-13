@@ -1,5 +1,5 @@
 <?php
-namespace xwxlogger;
+namespace Wxxiong6\WxxLogger;
 use Exception;
 /**
  * 日志类
