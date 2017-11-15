@@ -387,7 +387,13 @@ class WxxLogger
         if(!empty($category)){
             $category = $category;
         }else if(!empty($traces[1])){
-            $category = $traces[1]['class'].$traces[1]['type'].$traces[1]['function'];
+            $category = '';
+            if(isset($traces[1]['class']))
+                $category .= $traces[1]['class'];
+            if(isset($traces[1]['type']))
+                $category .= $traces[1]['type'];
+            if(isset($traces[1]['function']))
+                $category .= $traces[1]['function'];
         } else {
             $category = '-';
         }
