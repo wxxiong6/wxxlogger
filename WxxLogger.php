@@ -7,7 +7,7 @@ use Exception;
  * 默认当前目录
  * 默认日志文件名是application.log。
  * @author wxxiong <wxxiong6@gmail.com>
- * @version   v1.0.0
+ * @version   v1.0.1
  */
 class WxxLogger
 {
