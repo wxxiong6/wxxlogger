@@ -132,7 +132,7 @@ class WxxLogger
      */
     public function getLogPath()
     {
-        if($this->_logPath ===null)
+        if($this->_logPath === null)
             $this->setLogPath(__DIR__);
         return $this->_logPath;
     }
@@ -145,7 +145,7 @@ class WxxLogger
     public function setLogPath($value)
     {
         $this->_logPath = realpath($value);
-        if($this->_logPath===false || !is_dir($this->_logPath) || !is_writable($this->_logPath))
+        if($this->_logPath === false || !is_dir($this->_logPath) || !is_writable($this->_logPath))
             throw new Exception('logPath'."{$value}".' does not point to a valid directory.
 			 Make sure the directory exists and is writable by the Web server process.');
     }
@@ -163,7 +163,7 @@ class WxxLogger
      */
     public function setLogFile($value)
     {
-        $this->_logFile=$value;
+        $this->_logFile = $value;
     }
 
     /**
@@ -179,7 +179,7 @@ class WxxLogger
      */
     public function setMaxFileSize($value)
     {
-        if(($this->_maxFileSize=(int)$value)<1)
+        if(($this->_maxFileSize = (int)$value)  < 1)
             $this->_maxFileSize=1;
     }
 
@@ -274,7 +274,7 @@ class WxxLogger
     {
         $this->onFlush();
         $this->_logs = [];
-        $this->_logCount=0;
+        $this->_logCount = 0;
     }
 
     public function onFlush()
@@ -302,7 +302,8 @@ class WxxLogger
         }
         if(($sessionId = session_id()) === '')
             $sessionId = getmypid();
-        return  sprintf("%s<%s>:[%s][%s][%s]  : %s  \n %s file:(line %s)\n", $this->udate('y-m-d H:i:s.u', $time), $level, $category, $sessionId, $ipAddress, $message, $file, $line);
+        return  sprintf("%s<%s>:[%s][%s][%s]  : %s  \n %s file:(line %s)\n",
+            $this->udate('y-m-d H:i:s.u', $time), $level, $category, $sessionId, $ipAddress, $message, $file, $line);
     }
 
     /**
@@ -338,14 +339,14 @@ class WxxLogger
      */
     protected function rotateFiles()
     {
-        $file=$this->getLogPath().DIRECTORY_SEPARATOR.$this->getLogFile();
-        $max=$this->getMaxLogFiles();
-        for($i=$max;$i>0;--$i)
+        $file = $this->getLogPath().DIRECTORY_SEPARATOR.$this->getLogFile();
+        $max  = $this->getMaxLogFiles();
+        for($i = $max; $i > 0; --$i)
         {
-            $rotateFile=$file.'.'.$i;
+            $rotateFile = $file . '.' . $i;
             if(is_file($rotateFile))
             {
-                if($i===$max)
+                if($i === $max)
                     unlink($rotateFile);
                 else
                     rename($rotateFile,$file.'.'.($i+1));
