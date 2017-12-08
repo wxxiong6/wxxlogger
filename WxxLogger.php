@@ -86,7 +86,7 @@ class WxxLogger
     private $_logFile = 'application.log';
 
     /**
-     * @var object
+     * @var WxxLogger
      */
     private static $_instance;
 
@@ -105,7 +105,7 @@ class WxxLogger
     }
     /**
      * 获取对象
-     * @return object
+     * @return WxxLogger
      */
     public static function getInstance(){
         if (!(self::$_instance instanceof self)){
@@ -254,6 +254,9 @@ class WxxLogger
     public static function write($message,  $level = self::LEVEL_INFO, $category)
     {
         $obj = self::getInstance();
+        if(is_array($message)){
+            call_user_func();
+        }
         $obj->_logs[] = $obj->getLogInfo($message,  $level, $category);
         $obj->_logCount++;
         if($obj->autoFlush > 0 && $obj->_logCount >= $obj->autoFlush){  //日志行数
@@ -297,10 +300,9 @@ class WxxLogger
         if (isset($_SERVER["SERVER_ADDR"])){
             $ipAddress = $_SERVER["SERVER_ADDR"];
         }
-        //17-11-08 10:32:55.189521 <debug>: [Yaf\Application->run] [67720] [127.0.0.1]:ddd
         if(($sessionId = session_id()) === '')
             $sessionId = getmypid();
-        return  sprintf("%s<%s>:[%s][%s][%s] %s(line %s): %s\n", $this->udate('y-m-d H:i:s.u', $time), $level, $category, $sessionId, $ipAddress, $file, $line, $message);
+        return  sprintf("%s<%s>:[%s][%s][%s]  : %s  \n %s file:(line %s)\n", $this->udate('y-m-d H:i:s.u', $time), $level, $category, $sessionId, $ipAddress, $message, $file, $line);
     }
 
     /**
