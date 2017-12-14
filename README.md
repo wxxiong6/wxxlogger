@@ -20,7 +20,7 @@ composer require wxxiong6/wxxlogger
 ```
 ### 初始化配置
 ```PHP
-use xwxlogger/WxxLogger;
+use xwxlogger/WxxLogger as Logger;
 $this->logger = WxxLogger::getInstance();
 $config = [ 'LogPath' => __DIR__.'/runtime/logs', 'maxLogFiles' => '5', 'maxFileSize' => '10240', 'logFile' => 'app.log',];
 $this->logger->setConfig($config);
