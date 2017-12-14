@@ -1,6 +1,8 @@
 <?php
 namespace Wxxiong6\WxxLogger;
+
 use Exception;
+
 /**
  * 日志类
  * 需要手动创建日志目录,
@@ -78,7 +80,7 @@ class WxxLogger
     /**
      * @var string 日志文件目录
      */
-    private $_logPath;
+    private $_logPath = __DIR__;
 
     /**
      * @var string 日志文件名称
@@ -90,8 +92,13 @@ class WxxLogger
      */
     private static $_instance;
 
-    private function __construct(){}
-    private function __clone(){}
+    private function __construct()
+    {
+    }
+
+    private function __clone()
+    {
+    }
 
     public function __set($name, $value)
     {
@@ -103,12 +110,14 @@ class WxxLogger
     {
         return $this->$name;
     }
+
     /**
      * 获取对象
      * @return WxxLogger
      */
-    public static function getInstance(){
-        if (!(self::$_instance instanceof self)){
+    public static function getInstance()
+    {
+        if (!(self::$_instance instanceof self)) {
             self::$_instance = new self;
         }
         return self::$_instance;
@@ -118,36 +127,40 @@ class WxxLogger
      * 设置配置文件
      * @param array $config
      */
-    public function setConfig(array $config){
-        foreach ($config as $key => $val){
+    public function setConfig(array $config)
+    {
+        foreach ($config as $key => $val) {
             $func = 'set'.ucfirst($key);
-            if(method_exists(__CLASS__, $func)){
+            if (method_exists(__CLASS__, $func)) {
                 call_user_func_array([__CLASS__, $func], [$val]);
             }
         }
     }
 
     /**
-     * @return string directory storing log files. Defaults to application runtime path.
+     * @return null|string 存储日志文件目录
+     * @throws Exception
      */
     public function getLogPath()
     {
-        if($this->_logPath === null)
-            $this->setLogPath(__DIR__);
         return $this->_logPath;
     }
 
     /**
      *  设置日志目录
-     * @param $value directory for storing log files.
+     * @param $value
      * @throws Exception if the path is invalid
      */
     public function setLogPath($value)
     {
-        $this->_logPath = realpath($value);
-        if($this->_logPath === false || !is_dir($this->_logPath) || !is_writable($this->_logPath))
-            throw new Exception('logPath'."{$value}".' does not point to a valid directory.
-			 Make sure the directory exists and is writable by the Web server process.');
+
+        if (!is_dir($value)) {
+            if (!is_writable($value)) {
+                throw new Exception('日志目录：'."{$value}".' 不可写');
+            }
+            mkdir($value, 0777, true);
+        }
+        $this->_logPath = $value;
     }
 
     /**
@@ -155,15 +168,17 @@ class WxxLogger
      */
     public function getLogFile()
     {
-        return $this->_logFile;
+        return $this->_logPath . DIRECTORY_SEPARATOR . $this->_logFile;
     }
 
     /**
+     * 设置日志文件
      * @param string $value 日志文件名称
+     * @throws Exception
      */
     public function setLogFile($value)
     {
-        $this->_logFile = $value;
+        $this->_logFile =  $value;
     }
 
     /**
@@ -179,8 +194,9 @@ class WxxLogger
      */
     public function setMaxFileSize($value)
     {
-        if(($this->_maxFileSize = (int)$value)  < 1)
+        if (($this->_maxFileSize = (int)$value)  < 1) {
             $this->_maxFileSize=1;
+        }
     }
 
     /**
@@ -196,8 +212,9 @@ class WxxLogger
      */
     public function setMaxLogFiles($value)
     {
-        if(($this->_maxLogFiles = (int)$value)  < 1)
+        if (($this->_maxLogFiles = (int)$value)  < 1) {
             $this->_maxLogFiles = 1;
+        }
     }
 
     /**
@@ -206,7 +223,7 @@ class WxxLogger
      * @param string $category
      * @return bool
      */
-    public static function warn ($value, $category = '')
+    public static function warn($value, $category = '')
     {
         return self::write($value, self::LEVEL_WARN, $category);
     }
@@ -217,9 +234,9 @@ class WxxLogger
      * @param string $category
      * @return bool
      */
-    public static function info ($value, $category = '')
+    public static function info($value, $category = '')
     {
-        return self::write($value, self::LEVEL_INFO,  $category);
+        return self::write($value, self::LEVEL_INFO, $category);
     }
 
     /**
@@ -230,7 +247,7 @@ class WxxLogger
      */
     public static function error($value, $category = '')
     {
-        return self::write($value, self::LEVEL_ERROR,  $category);
+        return self::write($value, self::LEVEL_ERROR, $category);
     }
 
     /**
@@ -241,7 +258,7 @@ class WxxLogger
      */
     public static function debug($value, $category = '')
     {
-        return self::write($value, self::LEVEL_DEBUG,  $category);
+        return self::write($value, self::LEVEL_DEBUG, $category);
     }
 
     /**
@@ -251,17 +268,14 @@ class WxxLogger
      * @param $category
      * @return bool
      */
-    public static function write($message,  $level = self::LEVEL_INFO, $category)
+    public static function write($message, $level = self::LEVEL_INFO, $category)
     {
         $obj = self::getInstance();
-        if(is_array($message)){
-            call_user_func();
-        }
-        $obj->_logs[] = $obj->getLogInfo($message,  $level, $category);
+        $obj->_logs[] = $obj->getLogInfo($message, $level, $category);
         $obj->_logCount++;
-        if($obj->autoFlush > 0 && $obj->_logCount >= $obj->autoFlush){  //日志行数
+        if ($obj->autoFlush > 0 && $obj->_logCount >= $obj->autoFlush) {  //日志行数
             $obj->flush();
-        } elseif(intval(memory_get_usage()/1024) >= $obj->_maxFileSize){  //日志内存数
+        } elseif (intval(memory_get_usage()/1024) >= $obj->_maxFileSize) {  //日志内存数
             $obj->flush();
         }
         return true;
@@ -293,17 +307,27 @@ class WxxLogger
      * @param $traces
      * @return string
      */
-    protected function formatLogMessage($message, $level,  $category, $time, $file, $line, $traces)
+    protected function formatLogMessage($message, $level, $category, $time, $file, $line, $traces)
     {
         //获取IP
         $ipAddress = '0.0.0.0';
-        if (isset($_SERVER["SERVER_ADDR"])){
+        if (isset($_SERVER["SERVER_ADDR"])) {
             $ipAddress = $_SERVER["SERVER_ADDR"];
         }
-        if(($sessionId = session_id()) === '')
+        if (($sessionId = session_id()) === '') {
             $sessionId = getmypid();
-        return  sprintf("%s<%s>:[%s][%s][%s]  : %s  \n %s file:(line %s)\n",
-            $this->udate('y-m-d H:i:s.u', $time), $level, $category, $sessionId, $ipAddress, $message, $file, $line);
+        }
+        return  sprintf(
+            "%s<%s>:[%s][%s][%s]  : %s  \n  file: %s (line %s)\n",
+            $this->udate('y-m-d H:i:s.u', $time),
+            $level,
+            $category,
+            $sessionId,
+            $ipAddress,
+            $message,
+            $file,
+            $line
+        );
     }
 
     /**
@@ -313,24 +337,25 @@ class WxxLogger
      */
     protected function processLogs(array $logs)
     {
-        $logFile=$this->getLogPath().DIRECTORY_SEPARATOR.$this->getLogFile();
+        $logFile =  $this->getLogFile();
         try {
-            if(!is_file($logFile))
-            {
+            if (!is_file($logFile)) {
                 touch($logFile);
             }
-            if(filesize($logFile) > $this->getMaxFileSize()*1024)
+            if (filesize($logFile) > ($this->getMaxFileSize() * 1024)) {
                 $this->rotateFiles();
+            }
 
-            $fp = fopen($logFile,'a');
-            flock($fp,LOCK_EX);
-            foreach($logs as $log)
-                fwrite($fp,$this->formatLogMessage($log[0], $log[1], $log[2], $log[3], $log[4], $log[5], $log[6]));
+            $fp = fopen($logFile, 'a');
+            flock($fp, LOCK_EX);
+            foreach ($logs as $log) {
+                fwrite($fp, $this->formatLogMessage($log[0], $log[1], $log[2], $log[3], $log[4], $log[5], $log[6]));
+            }
 
-            flock($fp,LOCK_UN);
+            flock($fp, LOCK_UN);
             fclose($fp);
         } catch (Exception $e) {
-            throw new Exception('log error:'.$e->getMessage());
+            throw new Exception('logException:'.$e->getMessage());
         }
     }
 
@@ -339,21 +364,21 @@ class WxxLogger
      */
     protected function rotateFiles()
     {
-        $file = $this->getLogPath().DIRECTORY_SEPARATOR.$this->getLogFile();
+        $logFile =  $this->getLogFile();
         $max  = $this->getMaxLogFiles();
-        for($i = $max; $i > 0; --$i)
-        {
-            $rotateFile = $file . '.' . $i;
-            if(is_file($rotateFile))
-            {
-                if($i === $max)
+        for ($i = $max; $i > 0; --$i) {
+            $rotateFile = $logFile . '.' . $i;
+            if (is_file($rotateFile)) {
+                if ($i === $max) {
                     unlink($rotateFile);
-                else
-                    rename($rotateFile,$file.'.'.($i+1));
+                } else {
+                    rename($rotateFile, $logFile.'.'.($i+1));
+                }
             }
         }
-        if(is_file($file))
-            rename($file,$file.'.1');
+        if (is_file($logFile)) {
+            rename($logFile, $logFile.'.1');
+        }
     }
 
     /**
@@ -363,7 +388,7 @@ class WxxLogger
      * @param string $category
      * @return array
      */
-    protected  function getLogInfo ($message,  $level = 'info', $category = '')
+    protected function getLogInfo($message, $level = 'info', $category = '-')
     {
         $time = microtime(true);
         $traces = [];
@@ -378,7 +403,7 @@ class WxxLogger
                     if (++$count >= $this->_traceLevel) {
                         break;
                     }
-                } else if(!isset($trace['file'], $trace['line'])){
+                } elseif (!isset($trace['file'], $trace['line'])) {
                     $traces[] = $trace;
                     if (++$count >= $this->_traceLevel) {
                         break;
@@ -387,18 +412,17 @@ class WxxLogger
             }
         }
 
-        if(!empty($category)){
-            $category = $category;
-        }else if(!empty($traces[1])){
+        if (!empty($traces[1])) {
             $category = '';
-            if(isset($traces[1]['class']))
+            if (isset($traces[1]['class'])) {
                 $category .= $traces[1]['class'];
-            if(isset($traces[1]['type']))
+            }
+            if (isset($traces[1]['type'])) {
                 $category .= $traces[1]['type'];
-            if(isset($traces[1]['function']))
+            }
+            if (isset($traces[1]['function'])) {
                 $category .= $traces[1]['function'];
-        } else {
-            $category = '-';
+            }
         }
         $line = isset($traces[0]['line']) ? $traces[0]['line'] : 0;
         $file = isset($traces[0]['file']) ? $traces[0]['file'] : '';
@@ -413,19 +437,20 @@ class WxxLogger
      */
     private function udate($strFormat = 'u', $uTimeStamp = null)
     {
-        if (is_null($uTimeStamp))
-        {
+        if (is_null($uTimeStamp)) {
             $uTimeStamp = microtime(true);
         }
-        $arrTimeStamp = explode('.',$uTimeStamp,2);
+        $arrTimeStamp = explode('.', $uTimeStamp, 2);
         $intMilliseconds = array_pop($arrTimeStamp);
 
         $strMilliseconds = str_pad($intMilliseconds, 4, '0', STR_PAD_LEFT);
         return date(preg_replace('`(?<!\\\\)u`', $strMilliseconds, $strFormat), $arrTimeStamp[0]);
     }
 
-    public function __destruct(){
-        if($this->_logCount > 0)
+    public function __destruct()
+    {
+        if ($this->_logCount > 0) {
             $this->flush();
+        }
     }
 }
