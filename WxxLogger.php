@@ -149,15 +149,11 @@ class WxxLogger
     /**
      *  设置日志目录
      * @param $value
-     * @throws Exception if the path is invalid
      */
     public function setLogPath($value)
     {
 
         if (!is_dir($value)) {
-            if (!is_writable($value)) {
-                throw new Exception('日志目录：'."{$value}".' 不可写');
-            }
             mkdir($value, 0777, true);
         }
         $this->_logPath = $value;
