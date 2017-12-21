@@ -89,6 +89,7 @@ class WxxLogger
      */
     private $_levels = [
         self::LEVEL_DEBUG,
+        self::LEVEL_INFO,
         self::LEVEL_ERROR,
         self::LEVEL_FATAL,
         self::LEVEL_WARN
