@@ -1,39 +1,15 @@
 <?php
-/**
- * @author  wxxiong <wxxiong6@gmail.com>
- * @version v1.0.3
- * @link    https://github.com/wxxiong6/wxxlogger/blob/master/README.md
- */
-
 namespace Wxxiong6\WxxLogger;
 
 use Exception;
 
 /**
- * Class WxxLogger
- * @package Wxxiong6\WxxLogger
  * 日志类
  * 需要手动创建日志目录,
  * 默认当前目录
  * 默认日志文件名是application.log。
- * * @example
- * <pre>
- *   $config = [
- *       'LogPath' => __DIR__.'/runtime/logs',
- *       'maxLogFiles' => 5,
- *       'traceLevel'  => 2,
- *       'maxFileSize' => 10240,
- *       'logFile'     => 'app.log',
- *       'levels'      => ['error','warn'],
- *       'prefix'      => function () {
- *       return "[ip][userID][sessionID]";
- *       },
- *     ];
- *     WxxLogger::getInstance()->setConfig($config);
- *     WxxLogger::error('error');
- *     WxxLogger::debug('debug');
- *      ...
- * </pre>
+ * @author wxxiong <wxxiong6@gmail.com>
+ * @version   v1.0.1
  */
 class WxxLogger
 {
@@ -73,26 +49,9 @@ class WxxLogger
     const LEVEL_DEBUG   = 'debug';
 
     /**
-     * 日志前缀
-     * @var string
-     */
-    private $_prefix;
-
-    /**
      * @var integer 日志内存最大行数
      */
     public $autoFlush = 10000;
-
-    /**
-     * 记录日志级别
-     * @var array
-     */
-    private $_levels = [
-        self::LEVEL_DEBUG,
-        self::LEVEL_ERROR,
-        self::LEVEL_FATAL,
-        self::LEVEL_WARN
-    ];
 
     /**
      * @var array 日志信息
@@ -105,11 +64,9 @@ class WxxLogger
     private $_logCount = 0;
 
     /**
-     * 建议设置大于2，否则category无法自动显示
      * @var int 限制返回堆栈帧的数量
      */
-    private $_traceLevel = 2;
-
+    private $_traceLevel = 9;
     /**
      * @var integer maximum log file size
      */
@@ -154,19 +111,6 @@ class WxxLogger
         return $this->$name;
     }
 
-    public function __call($name, $arguments)
-    {
-        if (strpos($name, 'set') === 0) {
-            $property = str_replace('set', '', $name);
-            $property = '_'.lcfirst($property);
-            if (isset($arguments[0])) {
-                return $this->$property = $arguments[0];
-            } else {
-                return $this->$property;
-            }
-        }
-    }
-
     /**
      * 获取对象
      * @return WxxLogger
@@ -175,11 +119,6 @@ class WxxLogger
     {
         if (!(self::$_instance instanceof self)) {
             self::$_instance = new self;
-
-            register_shutdown_function(function () {
-                self::$_instance->flush();
-                register_shutdown_function([self::$_instance, 'flush'], true);
-            });
         }
         return self::$_instance;
     }
@@ -192,12 +131,15 @@ class WxxLogger
     {
         foreach ($config as $key => $val) {
             $func = 'set'.ucfirst($key);
-            call_user_func_array([__CLASS__, $func], [$val]);
+            if (method_exists(__CLASS__, $func)) {
+                call_user_func_array([__CLASS__, $func], [$val]);
+            }
         }
     }
 
     /**
      * @return null|string 存储日志文件目录
+     * @throws Exception
      */
     public function getLogPath()
     {
@@ -206,15 +148,19 @@ class WxxLogger
 
     /**
      *  设置日志目录
-     * @param string $logPath 日志目录
+     * @param $value
      * @throws Exception if the path is invalid
      */
-    public function setLogPath($logPath)
+    public function setLogPath($value)
     {
-        if (!is_dir($logPath)) {
-            mkdir($logPath, 0775, true);
+
+        if (!is_dir($value)) {
+            if (!is_writable($value)) {
+                throw new Exception('日志目录：'."{$value}".' 不可写');
+            }
+            mkdir($value, 0777, true);
         }
-        $this->_logPath = $logPath;
+        $this->_logPath = $value;
     }
 
     /**
@@ -228,6 +174,7 @@ class WxxLogger
     /**
      * 设置日志文件
      * @param string $value 日志文件名称
+     * @throws Exception
      */
     public function setLogFile($value)
     {
@@ -272,73 +219,58 @@ class WxxLogger
 
     /**
      * warn
-     * @param string|array $message 日志信息
-     * @param string $category 日志分类
+     * @param string $value
+     * @param string $category
      * @return bool
      */
-    public static function warn($message, $category = '-')
+    public static function warn($value, $category = '')
     {
-        return self::write($message, self::LEVEL_WARN, $category);
+        return self::write($value, self::LEVEL_WARN, $category);
     }
 
     /**
      * info
-     * @param string|array $message 日志信息
-     * @param string $category 日志分类
+     * @param $value
+     * @param string $category
      * @return bool
      */
-    public static function info($message, $category = '-')
+    public static function info($value, $category = '')
     {
-        return self::write($message, self::LEVEL_INFO, $category);
+        return self::write($value, self::LEVEL_INFO, $category);
     }
 
     /**
      * error
-     * @param string|array $message 日志信息
-     * @param string $category 日志分类
-     * @return bool
-     */
-    public static function error($message, $category = '-')
-    {
-        return self::write($message, self::LEVEL_ERROR, $category);
-    }
-
-    /**
-     * fatal
-     * @param $message
+     * @param $value
      * @param string $category
      * @return bool
      */
-    public static function fatal($message, $category = '-')
+    public static function error($value, $category = '')
     {
-        return self::write($message, self::LEVEL_FATAL, $category);
+        return self::write($value, self::LEVEL_ERROR, $category);
     }
 
     /**
      *  debug
-     * @param string|array $message 日志信息
-     * @param string $category 日志分类
+     * @param $value
+     * @param string $category
      * @return bool
      */
-    public static function debug($message, $category = '')
+    public static function debug($value, $category = '')
     {
-        return self::write($message, self::LEVEL_DEBUG, $category);
+        return self::write($value, self::LEVEL_DEBUG, $category);
     }
 
     /**
      * 写入日志消息
-     * @param string|array $message 日志信息
-     * @param string $level 日志等级
-     * @param string $category 日志分类
+     * @param $message
+     * @param string $level
+     * @param $category
      * @return bool
      */
-    public static function write($message, $level = self::LEVEL_INFO, $category = '-')
+    public static function write($message, $level = self::LEVEL_INFO, $category)
     {
         $obj = self::getInstance();
-        //按日志级别记录日志
-        if (! in_array($level, $obj->_levels)) {
-            return false;
-        }
         $obj->_logs[] = $obj->getLogInfo($message, $level, $category);
         $obj->_logCount++;
         if ($obj->autoFlush > 0 && $obj->_logCount >= $obj->autoFlush) {  //日志行数
@@ -350,38 +282,13 @@ class WxxLogger
     }
 
     /**
-     * 获取日志前缀
-     * @param $message
-     * @return mixed|string
-     */
-    public function getMessagePrefix($message)
-    {
-        if ($this->_prefix !== null) {
-            return call_user_func($this->_prefix, $message);
-        }
-
-        //获取IP
-        $ip = '0.0.0.0';
-        if (isset($_SERVER["SERVER_ADDR"])) {
-            $ip = $_SERVER["SERVER_ADDR"];
-        }
-        if (($sessionID = session_id()) === '') {
-            $sessionID = getmypid();
-        }
-
-        return "[$ip][$sessionID]";
-    }
-
-    /**
      * 从内存中删除所有记录的消息。
      */
     public function flush()
     {
-        if ($this->_logCount > 0) {
-            $this->onFlush();
-            $this->_logs = [];
-            $this->_logCount = 0;
-        }
+        $this->onFlush();
+        $this->_logs = [];
+        $this->_logCount = 0;
     }
 
     public function onFlush()
@@ -391,44 +298,36 @@ class WxxLogger
 
     /**
      * 格式化日志信息
-     * @param array|string $message
-     * @param string $level
-     * @param string $category
-     * @param int $timestamp
-     * @param string $traces
+     * @param $message
+     * @param $level
+     * @param $category
+     * @param $time
+     * @param $file
+     * @param $line
+     * @param $traces
      * @return string
      */
-    protected function formatLogMessage($message, $level, $category, $timestamp, $traces)
+    protected function formatLogMessage($message, $level, $category, $time, $file, $line, $traces)
     {
-        if (!is_string($message)) {
-            if ($message instanceof \Throwable || $message instanceof \Exception) {
-                $message = (string) $message;
-            } else {
-                $message = $this->export($message);
-            }
+        //获取IP
+        $ipAddress = '0.0.0.0';
+        if (isset($_SERVER["SERVER_ADDR"])) {
+            $ipAddress = $_SERVER["SERVER_ADDR"];
         }
-
-        $stack = [];
-        if (!empty($traces)) {
-            foreach ($traces as $trace) {
-                if (isset($trace['file']) && isset($trace['line'])) {
-                    $stack[] = "in {$trace['file']}:{$trace['line']}";
-                }
-            }
+        if (($sessionId = session_id()) === '') {
+            $sessionId = getmypid();
         }
-        $prefix = $this->getMessagePrefix($message);
-        return  $this->udate('Y-m-d H:i:s.u', $timestamp) . " {$prefix}[$level][$category] $message "
-            . (empty($stack) ? '' : "\n    " . implode("\n    ", $stack)) . PHP_EOL;
-    }
-
-    /**
-     * 数组对象转成字符串
-     * @param mixed $var
-     * @return string
-     */
-    private function export($var)
-    {
-        return var_export($var, true);
+        return  sprintf(
+            "%s<%s>:[%s][%s][%s]  : %s  \n  file: %s (line %s)\n",
+            $this->udate('y-m-d H:i:s.u', $time),
+            $level,
+            $category,
+            $sessionId,
+            $ipAddress,
+            $message,
+            $file,
+            $line
+        );
     }
 
     /**
@@ -450,7 +349,7 @@ class WxxLogger
             $fp = fopen($logFile, 'a');
             flock($fp, LOCK_EX);
             foreach ($logs as $log) {
-                fwrite($fp, $this->formatLogMessage($log[0], $log[1], $log[2], $log[3], $log[4]));
+                fwrite($fp, $this->formatLogMessage($log[0], $log[1], $log[2], $log[3], $log[4], $log[5], $log[6]));
             }
 
             flock($fp, LOCK_UN);
@@ -525,24 +424,33 @@ class WxxLogger
                 $category .= $traces[1]['function'];
             }
         }
-        return  [$message, $level, $category, $time, $traces];
+        $line = isset($traces[0]['line']) ? $traces[0]['line'] : 0;
+        $file = isset($traces[0]['file']) ? $traces[0]['file'] : '';
+        return  [$message, $level, $category, $time, $file, $line, $traces];
     }
 
     /**
      * 毫秒
-     * @param string $format
-     * @param null $timestamp
+     * @param string $strFormat
+     * @param null $uTimeStamp
      * @return false|string
      */
-    private function udate($format = 'u', $timestamp = null)
+    private function udate($strFormat = 'u', $uTimeStamp = null)
     {
-        if (is_null($timestamp)) {
-            $timestamp = microtime(true);
+        if (is_null($uTimeStamp)) {
+            $uTimeStamp = microtime(true);
         }
-        $arrTimeStamp = explode('.', $timestamp, 2);
+        $arrTimeStamp = explode('.', $uTimeStamp, 2);
         $intMilliseconds = array_pop($arrTimeStamp);
 
         $strMilliseconds = str_pad($intMilliseconds, 4, '0', STR_PAD_LEFT);
-        return date(preg_replace('`(?<!\\\\)u`', $strMilliseconds, $format), $arrTimeStamp[0]);
+        return date(preg_replace('`(?<!\\\\)u`', $strMilliseconds, $strFormat), $arrTimeStamp[0]);
+    }
+
+    public function __destruct()
+    {
+        if ($this->_logCount > 0) {
+            $this->flush();
+        }
     }
 }
