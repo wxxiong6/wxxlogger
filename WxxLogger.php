@@ -540,10 +540,13 @@ class WxxLogger
         if (is_null($timestamp)) {
             $timestamp = microtime(true);
         }
-        $arrTimeStamp = explode('.', $timestamp, 2);
-        $intMilliseconds = array_pop($arrTimeStamp);
-
-        $strMilliseconds = str_pad($intMilliseconds, 4, '0', STR_PAD_LEFT);
+        if (strpos($timestamp, '0') !== false) {
+            $arrTimeStamp = explode('.', $timestamp, 2);
+            $intMilliseconds = array_pop($arrTimeStamp);
+        } else {
+            $intMilliseconds = '0';
+        }
+        $strMilliseconds = str_pad($intMilliseconds, 4, '0', STR_PAD_RIGHT);
         return date(preg_replace('`(?<!\\\\)u`', $strMilliseconds, $format), $arrTimeStamp[0]);
     }
 }
