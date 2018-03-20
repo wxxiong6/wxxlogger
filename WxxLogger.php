@@ -449,12 +449,12 @@ class WxxLogger
             }
 
             $fp = fopen($logFile, 'a');
-            flock($fp, LOCK_EX);
+           
             foreach ($logs as $log) {
                 fwrite($fp, $this->formatLogMessage($log[0], $log[1], $log[2], $log[3], $log[4]));
             }
 
-            flock($fp, LOCK_UN);
+           
             fclose($fp);
         } catch (Exception $e) {
             throw new Exception('logException:'.$e->getMessage());
