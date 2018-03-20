@@ -547,6 +547,6 @@ class WxxLogger
             $intMilliseconds = '0';
         }
         $strMilliseconds = str_pad($intMilliseconds, 4, '0', STR_PAD_RIGHT);
-        return date(preg_replace('`(?<!\\\\)u`', $strMilliseconds, $format), $intMilliseconds);
+        return date(preg_replace('`(?<!\\\\)u`', $strMilliseconds, $format), $timestamp);
     }
 }
