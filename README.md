@@ -35,7 +35,7 @@ use xwxlogger/WxxLogger as Logger;
   WxxLogger::getInstance()->setConfig($config);
 ```
 
-### 常用方法
+### 常用方法：
 
 ####  debug
 ```PHP
