@@ -1,7 +1,7 @@
 <?php
 /**
  * @author  wxxiong <wxxiong6@gmail.com>
- * @version v1.0.3
+ * @version v1.0.4
  * @link    https://github.com/wxxiong6/wxxlogger/blob/master/README.md
  */
 
@@ -321,7 +321,7 @@ class WxxLogger
      * @param string $category 日志分类
      * @return bool
      */
-    public static function debug($message, $category = '')
+    public static function debug($message, $category = '-')
     {
         return self::write($message, self::LEVEL_DEBUG, $category);
     }
@@ -449,12 +449,12 @@ class WxxLogger
             }
 
             $fp = fopen($logFile, 'a');
-           
+            #flock($fp, LOCK_EX);
             foreach ($logs as $log) {
                 fwrite($fp, $this->formatLogMessage($log[0], $log[1], $log[2], $log[3], $log[4]));
             }
 
-           
+            #flock($fp, LOCK_UN);
             fclose($fp);
         } catch (Exception $e) {
             throw new Exception('logException:'.$e->getMessage());
@@ -530,22 +530,24 @@ class WxxLogger
     }
 
     /**
-     * 毫秒
-     * @param string $format
-     * @param null $timestamp
-     * @return false|string
+     * 显示日期时间毫秒（2018-10-09 11:00:53.4272 ）
+     * @param string $format 时间格式
+     * @param null $timestamp 需要格式化的时间戳
+     * @return false|string  格式化的日期
      */
     private function udate($format = 'u', $timestamp = null)
     {
         if (is_null($timestamp)) {
             $timestamp = microtime(true);
         }
+
         if (strpos($timestamp, '0') !== false) {
             $arrTimeStamp = explode('.', $timestamp, 2);
             $intMilliseconds = array_pop($arrTimeStamp);
         } else {
             $intMilliseconds = '0';
         }
+
         $strMilliseconds = str_pad($intMilliseconds, 4, '0', STR_PAD_RIGHT);
         return date(preg_replace('`(?<!\\\\)u`', $strMilliseconds, $format), $timestamp);
     }
