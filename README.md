@@ -51,3 +51,8 @@ Logger::info('info');
 ```PHP
 Logger::error('error');
 ```
+### changlog：
+    v1.0.0 第一版发布
+    v2.0.0 增加是否切割日志、是否显示毫秒
+           修改多次调用fwrite，合并日志后，调用一次日志
+           修改时间时间函数，默认加关闭毫秒
