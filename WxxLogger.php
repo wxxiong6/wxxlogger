@@ -1,14 +1,11 @@
 <?php
 /**
  * @author  wxxiong <wxxiong6@gmail.com>
- * @version v1.0.4
+ * @version v2.0.0
  * @link    https://github.com/wxxiong6/wxxlogger/blob/master/README.md
  */
-
-namespace Wxxiong6\WxxLogger;
-
+namespace wxxiong6\wxxLogger;
 use Exception;
-
 /**
  * Class WxxLogger
  * @package Wxxiong6\WxxLogger
@@ -19,70 +16,59 @@ use Exception;
  * * @example
  * <pre>
  *   $config = [
- *       'LogPath' => __DIR__.'/runtime/logs',
- *       'maxLogFiles' => 5,
- *       'traceLevel'  => 2,
- *       'maxFileSize' => 10240,
- *       'logFile'     => 'app.log',
- *       'levels'      => ['error','warn'],
- *       'prefix'      => function () {
- *       return "[ip][userID][sessionID]";
- *       },
- *     ];
- *     WxxLogger::getInstance()->setConfig($config);
- *     WxxLogger::error('error');
- *     WxxLogger::debug('debug');
+ *      'LogPath' => __DIR__.'/runtime/logs',
+ *      'maxLogFiles' => 5,
+ *      'traceLevel'  => 0,
+ *      'maxFileSize' => 10240,
+ *      'logFile'     => 'app.log',
+ *      'levels'      => ['error','warn','debug'],
+ *    ];
+ *    WxxLogger::getInstance()->setConfig($config);
+ *    WxxLogger::error(['mes'=>'error','code'=>100], '123123');
+ *    WxxLogger::debug('debug');
  *      ...
  * </pre>
  */
 class WxxLogger
 {
-
     /**
      *  代表发生了最严重的错误，会导致整个服务停止（或者需要整个服务停止）。
      *  简单地说就是服务死掉了。
      * @var string
      */
     const LEVEL_FATAL = 'fatal';
-
     /**
      *  代表发生了必须马上处理的错误。此类错误出现以后可以允许程序继续运行，
      *  但必须马上修正，如果不修正，就会导致不能完成相应的业务。
      * @var string
      */
     const LEVEL_ERROR   = 'error';
-
     /**
      * 发生这个级别问题时，处理过程可以继续，但必须对这个问题给予额外关注。
      * @var string
      */
     const LEVEL_WARN = 'warn';
-
     /**
      *  此输出级别常用语业务事件信息。例如某项业务处理完毕，
      *  或者业务处理过程中的一些信息。
      * @var string
      */
     const LEVEL_INFO    = 'info';
-
     /**
      * 此输出级别用于开发阶段的调试，可以是某几个逻辑关键点的变量值的输出，
      * 或者是函数返回值的验证等等。业务相关的请用info
      * @var string
      */
     const LEVEL_DEBUG   = 'debug';
-
     /**
      * 日志前缀
      * @var string
      */
     private $_prefix;
-
     /**
      * @var integer 日志内存最大行数
      */
     public $autoFlush = 10000;
-
     /**
      * 记录日志级别
      * @var array
@@ -94,67 +80,67 @@ class WxxLogger
         self::LEVEL_FATAL,
         self::LEVEL_WARN
     ];
-
     /**
      * @var array 日志信息
      */
     private $_logs = [];
-
     /**
      * @var integer 数量的日志消息
      */
     private $_logCount = 0;
-
     /**
      * 建议设置大于2，否则category无法自动显示
      * @var int 限制返回堆栈帧的数量
      */
     private $_traceLevel = 2;
-
     /**
      * @var integer maximum log file size
      */
     private $_maxFileSize = 1024; // in KB
-
     /**
      * @var integer 最大日志文件数
      */
     private $_maxLogFiles = 5;
-
     /**
      * @var string 日志文件目录
      */
     private $_logPath = __DIR__;
-
     /**
      * @var string 日志文件名称
      */
     private $_logFile = 'application.log';
 
     /**
+     * @var bool  是否切割日志文件
+     * @since 2.0.0
+     */
+    public $enableRotation = true;
+
+    /**
+     * @var bool 开启毫秒.
+     * Defaults to false.
+     * @since 2.0.0
+     */
+    public $microtime = true;
+    /**
      * @var WxxLogger
      */
     private static $_instance;
-
     private function __construct()
     {
     }
-
     private function __clone()
     {
     }
-
     public function __set($name, $value)
     {
         $property = '_'.$name;
         $this->$property = $value;
     }
-
     public function __get($name)
     {
         return $this->$name;
     }
-
     public function __call($name, $arguments)
     {
         if (strpos($name, 'set') === 0) {
@@ -167,7 +153,6 @@ class WxxLogger
             }
         }
     }
-
     /**
      * 获取对象
      * @return WxxLogger
@@ -176,7 +161,6 @@ class WxxLogger
     {
         if (!(self::$_instance instanceof self)) {
             self::$_instance = new self;
-
             register_shutdown_function(function () {
                 self::$_instance->flush();
                 register_shutdown_function([self::$_instance, 'flush'], true);
@@ -184,7 +168,6 @@ class WxxLogger
         }
         return self::$_instance;
     }
-
     /**
      * 设置配置文件
      * @param array $config
@@ -196,7 +179,6 @@ class WxxLogger
             call_user_func_array([__CLASS__, $func], [$val]);
         }
     }
-
     /**
      * @return null|string 存储日志文件目录
      */
@@ -204,7 +186,6 @@ class WxxLogger
     {
         return $this->_logPath;
     }
-
     /**
      *  设置日志目录
      * @param string $logPath 日志目录
@@ -217,7 +198,6 @@ class WxxLogger
         }
         $this->_logPath = $logPath;
     }
-
     /**
      * @return string 日志文件名称 默认 'application.log'.
      */
@@ -225,7 +205,6 @@ class WxxLogger
     {
         return $this->_logPath . DIRECTORY_SEPARATOR . $this->_logFile;
     }
-
     /**
      * 设置日志文件
      * @param string $value 日志文件名称
@@ -234,7 +213,6 @@ class WxxLogger
     {
         $this->_logFile =  $value;
     }
-
     /**
      * @return integer maximum 以千字节(KB)的日志文件大小。默认为1024(1 mb)。
      */
@@ -242,7 +220,6 @@ class WxxLogger
     {
         return $this->_maxFileSize;
     }
-
     /**
      * @param integer $value maximum log file size in kilo-bytes (KB).
      */
@@ -252,7 +229,6 @@ class WxxLogger
             $this->_maxFileSize=1;
         }
     }
-
     /**
      * @return integer number 最大文件数
      */
@@ -260,7 +236,6 @@ class WxxLogger
     {
         return $this->_maxLogFiles;
     }
-
     /**
      * @param integer $value 设置最大日志文件数
      */
@@ -270,7 +245,6 @@ class WxxLogger
             $this->_maxLogFiles = 1;
         }
     }
-
     /**
      * warn
      * @param string|array $message 日志信息
@@ -281,7 +255,6 @@ class WxxLogger
     {
         return self::write($message, self::LEVEL_WARN, $category);
     }
-
     /**
      * info
      * @param string|array $message 日志信息
@@ -292,7 +265,6 @@ class WxxLogger
     {
         return self::write($message, self::LEVEL_INFO, $category);
     }
-
     /**
      * error
      * @param string|array $message 日志信息
@@ -303,7 +275,6 @@ class WxxLogger
     {
         return self::write($message, self::LEVEL_ERROR, $category);
     }
-
     /**
      * fatal
      * @param $message
@@ -314,7 +285,6 @@ class WxxLogger
     {
         return self::write($message, self::LEVEL_FATAL, $category);
     }
-
     /**
      *  debug
      * @param string|array $message 日志信息
@@ -325,7 +295,6 @@ class WxxLogger
     {
         return self::write($message, self::LEVEL_DEBUG, $category);
     }
-
     /**
      * 写入日志消息
      * @param string|array $message 日志信息
@@ -347,9 +316,8 @@ class WxxLogger
         } elseif (intval(memory_get_usage()/1024) >= $obj->_maxFileSize) {  //日志内存数
             $obj->flush();
         }
-        return true;
+        return $obj;
     }
-
     /**
      * 获取日志前缀
      * @param $message
@@ -360,21 +328,22 @@ class WxxLogger
         if ($this->_prefix !== null) {
             return call_user_func($this->_prefix, $message);
         }
-
         //获取IP
         $ip = '0.0.0.0';
         if (isset($_SERVER["SERVER_ADDR"])) {
             $ip = $_SERVER["SERVER_ADDR"];
         }
+
         if (($sessionID = session_id()) === '') {
             $sessionID = getmypid();
         }
 
-        return "[$ip][$sessionID]";
-    }
+        $pID = getmypid();
 
+        return "[$ip][$pID][$sessionID]";
+    }
     /**
-     * 从内存中删除所有记录的消息。
+     * 写入日志。
      */
     public function flush()
     {
@@ -385,22 +354,18 @@ class WxxLogger
         }
     }
 
+
     public function onFlush()
     {
         $this->processLogs($this->_logs);
     }
-
     /**
      * 格式化日志信息
-     * @param array|string $message
-     * @param string $level
-     * @param string $category
-     * @param int $timestamp
-     * @param string $traces
-     * @return string
+     * @param array $message
      */
-    protected function formatLogMessage($message, $level, $category, $timestamp, $traces)
+    protected function formatMessage(array $logs)
     {
+        list($message, $level, $category, $timestamp, $traces) = $logs;
         if (!is_string($message)) {
             if ($message instanceof \Throwable || $message instanceof \Exception) {
                 $message = (string) $message;
@@ -408,7 +373,6 @@ class WxxLogger
                 $message = $this->export($message);
             }
         }
-
         $stack = [];
         if (!empty($traces)) {
             foreach ($traces as $trace) {
@@ -418,10 +382,9 @@ class WxxLogger
             }
         }
         $prefix = $this->getMessagePrefix($message);
-        return  $this->udate('Y-m-d H:i:s.u', $timestamp) . " {$prefix}[$level][$category] $message "
-            . (empty($stack) ? '' : "\n    " . implode("\n    ", $stack)) . PHP_EOL;
+        return  $this->getTime($timestamp) . " {$prefix}[$level][$category] $message "
+            . (empty($stack) ? '' : "\n    " . implode("\n    ", $stack));
     }
-
     /**
      * 数组对象转成字符串
      * @param mixed $var
@@ -431,7 +394,6 @@ class WxxLogger
     {
         return var_export($var, true);
     }
-
     /**
      * 保存日志信息到文件
      * @param array $logs      日志信息
@@ -444,15 +406,18 @@ class WxxLogger
             if (!is_file($logFile)) {
                 touch($logFile);
             }
-            if (filesize($logFile) > ($this->getMaxFileSize() * 1024)) {
+            $text = implode("\n", array_map([$this, 'formatMessage'], $logs)) . "\n";
+
+            if ($this->enableRotation && @filesize($logFile) > ($this->getMaxFileSize() * 1024)) {
                 $this->rotateFiles();
             }
 
-            $fp = fopen($logFile, 'a');
-            #flock($fp, LOCK_EX);
-            foreach ($logs as $log) {
-                fwrite($fp, $this->formatLogMessage($log[0], $log[1], $log[2], $log[3], $log[4]));
+            if (($fp = @fopen($logFile, 'a')) === false) {
+                throw new Exception("Unable to append to log file: {$logFile}");
             }
+            #flock($fp, LOCK_EX);
+
+            @fwrite($fp, $text);
 
             #flock($fp, LOCK_UN);
             fclose($fp);
@@ -460,9 +425,8 @@ class WxxLogger
             throw new Exception('logException:'.$e->getMessage());
         }
     }
-
     /**
-     * Rotates log files.
+     * 分割文件
      */
     protected function rotateFiles()
     {
@@ -482,7 +446,6 @@ class WxxLogger
             rename($logFile, $logFile.'.1');
         }
     }
-
     /**
      * 生成文件名、行号和函数名
      * @param $message
@@ -494,10 +457,11 @@ class WxxLogger
     {
         $time = microtime(true);
         $traces = [];
-        if ($this->_traceLevel > 0) {
-            $count = 0;
+
             $ts = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
             array_pop($ts);
+
+            $count = 0;
             foreach ($ts as $trace) {
                 if (isset($trace['file'], $trace['line']) &&  strpos($trace['file'], __FILE__) !== 0) {
                     unset($trace['object'], $trace['args']);
@@ -512,43 +476,55 @@ class WxxLogger
                     }
                 }
             }
+
+
+
+
+        $category = $this->getCategory($category, $traces);
+        if ($this->_traceLevel === 0) {
+            $traces = [];
         }
 
-        if (!empty($traces[1])) {
-            $category = '';
-            if (isset($traces[1]['class'])) {
-                $category .= $traces[1]['class'];
-            }
-            if (isset($traces[1]['type'])) {
-                $category .= $traces[1]['type'];
-            }
-            if (isset($traces[1]['function'])) {
-                $category .= $traces[1]['function'];
-            }
-        }
         return  [$message, $level, $category, $time, $traces];
     }
 
-    /**
-     * 显示日期时间毫秒（2018-10-09 11:00:53.4272 ）
-     * @param string $format 时间格式
-     * @param null $timestamp 需要格式化的时间戳
-     * @return false|string  格式化的日期
-     */
-    private function udate($format = 'u', $timestamp = null)
+    protected function getCategory($category, $traces)
     {
-        if (is_null($timestamp)) {
-            $timestamp = microtime(true);
+        if ($category !== '-') {
+            return $category;
         }
 
-        if (strpos($timestamp, '0') !== false) {
-            $arrTimeStamp = explode('.', $timestamp, 2);
-            $intMilliseconds = array_pop($arrTimeStamp);
+        if ($this->_traceLevel === 0) {
+            if (isset($traces[0]['file'])) {
+                $pathArr = pathinfo($traces[0]['file']);
+                $category = $pathArr['basename'] . ':' .  $traces[0]['line'];
+            }
         } else {
-            $intMilliseconds = '0';
+                if (!empty($traces[1])) {
+                    $category = '';
+                    if (isset($traces[1]['class'])) {
+                        $category .= $traces[1]['class'];
+                    }
+                    if (isset($traces[1]['type'])) {
+                        $category .= $traces[1]['type'];
+                    }
+                    if (isset($traces[1]['function'])) {
+                        $category .= $traces[1]['function'];
+                    }
+            }
         }
-
-        $strMilliseconds = str_pad($intMilliseconds, 4, '0', STR_PAD_RIGHT);
-        return date(preg_replace('`(?<!\\\\)u`', $strMilliseconds, $format), $timestamp);
+        return $category;
+    }
+    /**
+     * 显示日期时间格式
+     * @param null $timestamp 需要格式化的时间戳
+     * @return string  格式化的日期
+     * @since 2.0.0
+     */
+    protected function getTime($timestamp)
+    {
+         $timestamp = str_replace(',', '.', (string) $timestamp);
+         $parts = explode('.', $timestamp);
+         return date('Y-m-d H:i:s', $parts[0]) . ($this->microtime && isset($parts[1]) ? ('.' . sprintf('%04d', $parts[1])) : '');
     }
 }
