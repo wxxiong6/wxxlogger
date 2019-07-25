@@ -38,11 +38,11 @@ composer require wxxiong6/wxxlogger
     WxxLogger::error(['mes'=>'error','code'=>100], '123123');
     WxxLogger::debug('debug');
 ```
-## traceLevel
+#### traceLevel
    显示堆栈层数。参数为0时，日志信息少，但日志内容简洁。
-## prefix 
+#### prefix 
    日志回调函数，可通过些函数显示日志自定义标识
-## levels
+#### levels
    定入日志级别，未定义的级别不会写入日志中
 
 
