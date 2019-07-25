@@ -20,19 +20,21 @@ composer require wxxiong6/wxxlogger
 ```
 ### 初始化配置
 ```PHP
-use xwxlogger/WxxLogger as Logger;
- $config = [
-                'LogPath' => __DIR__.'/runtime/logs',
-                'maxLogFiles' => 5,
-                'traceLevel'  => 2,
-                'maxFileSize' => 10240,
-                'logFile'     => 'app.log',
-                'levels'      => ['error','warn'],
-                'prefix'      => function () {
-                    return "[ip][userID][sessionID]";
-                },
-            ];
-  WxxLogger::getInstance()->setConfig($config);
+    use wxxiong6\wxxLogger\WxxLogger;
+    $config = [
+      'LogPath' => __DIR__.'/runtime/logs',
+      'maxLogFiles' => 5,
+      'traceLevel'  => 0,
+      'maxFileSize' => 10240,
+      'logFile'     => 'app.log',
+      'levels'      => ['error','warn','debug'],
+      'prefix'      => function () {
+              return "[ip][userID][sessionID]";
+        },
+    ];
+    WxxLogger::getInstance()->setConfig($config);
+    WxxLogger::error(['mes'=>'error','code'=>100], '123123');
+    WxxLogger::debug('debug');
 ```
 
 ### 常用方法：
