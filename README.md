@@ -24,17 +24,20 @@ composer require wxxiong6/wxxlogger
 ```PHP
     use wxxiong6\wxxLogger\WxxLogger;
     $config = [
-      'LogPath' => __DIR__.'/runtime/logs',
+      'defaultTemplate' = '%T|%L|%P|%I|%Q|%C',
+      'logPath' => __DIR__.'/runtime/logs',
       'maxLogFiles' => 5,
       'traceLevel'  => 0,
       'maxFileSize' => 10240,
       'logFile'     => 'app.log',
       'levels'      => ['error','warn','debug'],
-      'prefix'      => function () {
-              return "[ip][userID][sessionID]";
-        },
     ];
     WxxLogger::getInstance()->setConfig($config);
+    
+    // 单个属性修改可以如用如下方法
+    WxxLogger::getInstance()->setDefaultTemplate('%T|%L|%P|%I|%Q|%C');
+    WxxLogger::getInstance()->setXXX($val);
+     
     WxxLogger::error(['mes'=>'error','code'=>100], '123123');
     WxxLogger::debug('debug');
 ```
@@ -44,8 +47,16 @@ composer require wxxiong6/wxxlogger
    日志回调函数，可通过些函数显示日志自定义标识
 #### levels
    定入日志级别，未定义的级别不会写入日志中
-
-
+ ### 自定义模板参数
+ - %L - Level 日志级别。
+ - %T - DateTime 如2019-12-17 19:17:02
+ - %Q - RequestId 区分单次请求，如没有调用setRequestId($string)方法，则在初始化请求时，采用内置的uniqid()方法生成的惟一值。
+ - %H - HostName 主机名。
+ - %P - ProcessId 进程ID。
+ - %I - Client IP 来源客户端IP; Cli模式下为local。取值优先级为：HTTP_X_REAL_IP > HTTP_X_FORWARDED_FOR > REMOTE_ADDR
+ - %C - Class::Action 类名::方法名，如UserService::getUserInfo。不在类中使用时，记录函数名
+ - %S - 占位符
+    
 ### 常用方法：
 
 ####  debug
@@ -66,3 +77,4 @@ Logger::error('error');
            修改多次调用fwrite，合并日志后，调用一次日志
            修改时间时间函数，默认加关闭毫秒
            修改traceLevel=0时间，category默认时间文件名及行号
+    v2.0.1 增加日志模板自定义功能
