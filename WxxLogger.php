@@ -132,7 +132,7 @@ class WxxLogger
      * %C - Class::Action 类名::方法名，如UserService::getUserInfo。不在类中使用时，记录函数名
      * %S - 占位符，什么都不做
      */
-    private $_defaultTemplate = "%T|%L|%P|%I|%Q|%C|%M";
+    private $_defaultTemplate = "%T|%L|%P|%I|%Q|%C";
     /**
      * @var string 分隔符，必须与$defaultTemplate 一致
      */
