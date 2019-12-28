@@ -21,7 +21,7 @@ use Exception;
  *      'traceLevel'  => 0,
  *      'maxFileSize' => 10240,
  *      'logFile'     => 'app.log',
- *      'levels'      => ['error','warn','debug'],
+ *      'levels'      => ['error','warning',, 'info', 'debug'],
  *    ];
  *    WxxLogger::getInstance()->setConfig($config);
  *    WxxLogger::error(['mes'=>'error','code'=>100], '123123');
@@ -31,89 +31,123 @@ use Exception;
  */
 class WxxLogger
 {
+
     /**
-     *  代表发生了最严重的错误，会导致整个服务停止（或者需要整个服务停止）。
+     * 系统不可用
+     */
+    const LEVEL_EMERGENCY = 0x01;
+
+    /**
+     * 必须立刻处理
+     * 例如：在整个网站都垮掉了、数据库不可用了或者其他的情况下
+     */
+    const LEVEL_ALERT = 0x02;
+
+    /**
+     *  紧急情况
      *  简单地说就是服务死掉了。
-     * @var string
      */
-    const LEVEL_FATAL = 'fatal';
+    const LEVEL_CRITICAL = 0x03;
+
     /**
-     *  代表发生了必须马上处理的错误。此类错误出现以后可以允许程序继续运行，
-     *  但必须马上修正，如果不修正，就会导致不能完成相应的业务。
-     * @var string
+     *  运行时出现的错误
+     *  不需要立刻采取行动，但必须记录下来后处理。
      */
-    const LEVEL_ERROR   = 'error';
+    const LEVEL_ERROR   = 0x04;
+
     /**
-     * 发生这个级别问题时，处理过程可以继续，但必须对这个问题给予额外关注。
-     * @var string
+     * 出现非错误性的异常
+     * 例如：使用了被弃用的API 、错误地使用了API或者非预想的不必要错误。
      */
-    const LEVEL_WARN = 'warn';
+    const LEVEL_WARN = 0x05;
+
     /**
-     *  此输出级别常用语业务事件信息。例如某项业务处理完毕，
-     *  或者业务处理过程中的一些信息。
-     * @var string
+     * 一般性重要的事件
      */
-    const LEVEL_INFO    = 'info';
+    const LEVEL_NOTICE = 0x06;
+
     /**
-     * 此输出级别用于开发阶段的调试，可以是某几个逻辑关键点的变量值的输出，
-     * 或者是函数返回值的验证等等。业务相关的请用info
-     * @var string
+     *  重要事件
+     *  例如某项业务处理完毕，用户登录和SQL记录
      */
-    const LEVEL_DEBUG   = 'debug';
+    const LEVEL_INFO    = 0x07;
+
+    /**
+     * 详情
+     * 例如函数返回值的验证等等。业务相关的请用info
+     */
+    const LEVEL_DEBUG   = 0x08;
+
     /**
      * 日志前缀
-     * @var string
      */
     private $_prefix;
+
     /**
-     * @var integer 日志内存最大行数
+     * 在将日志从内存中输出到目标之前，应该记录多少消息。
+     * @var integer
      */
-    public $autoFlush = 10000;
+
+    public $autoFlush = 1000;
+
     /**
      * 记录日志级别
      * @var array
      */
     private $_levels = [
-        self::LEVEL_DEBUG,
-        self::LEVEL_INFO,
+        self::LEVEL_EMERGENCY,
+        self::LEVEL_ALERT,
+        self::LEVEL_CRITICAL,
         self::LEVEL_ERROR,
-        self::LEVEL_FATAL,
-        self::LEVEL_WARN
+        self::LEVEL_WARN,
+        self::LEVEL_NOTICE,
+        self::LEVEL_INFO,
+        self::LEVEL_DEBUG,
     ];
+
     /**
      * @var array 日志信息
      */
     private $_logs = [];
+
     /**
      * @var integer 数量的日志消息
      */
     private $_logCount = 0;
+
     /**
      * 建议设置大于2，否则category无法自动显示
      * @var int 限制返回堆栈帧的数量
      */
     private $_traceLevel = 2;
+
     /**
-     * @var integer maximum log file size
+     * 日志文件的大小
+     * @var integer
      */
     private $_maxFileSize = 1024; // in KB
+
     /**
      * @var integer 最大日志文件数
      */
     private $_maxLogFiles = 5;
+
     /**
      * @var string 日志文件目录
      */
-    private $_logPath = __DIR__;
+    private $_logPath = __DIR__ ;
+
     /**
      * @var string 日志文件名称
      */
     private $_logFile = 'application.log';
+
     /**
      * @var bool  是否切割日志文件
      * @since 2.0.0
      */
     private $_enableRotation = true;
+
     /**
      * @var bool 开启毫秒.
      * Defaults to false.
@@ -121,6 +155,7 @@ class WxxLogger
      */
     private $_microtime = true;
 
+    private $_useMemory;
     /**
      * @var string
      * %L - Level 日志级别。
@@ -133,10 +168,12 @@ class WxxLogger
      * %S - 占位符，什么都不做
      */
     private $_defaultTemplate = "%T|%L|%P|%I|%Q|%C";
+
     /**
      * @var string 分隔符，必须与$defaultTemplate 一致
      */
     private $_separator = '|';
+
     /**
      * @var WxxLogger
      */
@@ -194,7 +231,7 @@ class WxxLogger
     public static function getInstance()
     {
         if (!(self::$_instance instanceof self)) {
-            self::$_instance = new self;
+            self::$_instance = new self();
             register_shutdown_function(function () {
                 self::$_instance->flush();
                 register_shutdown_function([self::$_instance, 'flush'], true);
@@ -244,6 +281,7 @@ class WxxLogger
             $this->_maxLogFiles = 1;
         }
     }
+
     /**
      * warn
      * @param string|array $message 日志信息
@@ -252,7 +290,7 @@ class WxxLogger
      */
     public static function warn($message, $category = '-')
     {
-        return self::write($message, self::LEVEL_WARN, $category);
+        return self::getInstance()->write($message, self::LEVEL_WARN, $category);
     }
     /**
      * info
@@ -262,7 +300,7 @@ class WxxLogger
      */
     public static function info($message, $category = '-')
     {
-        return self::write($message, self::LEVEL_INFO, $category);
+        return self::getInstance()->write($message, self::LEVEL_INFO, $category);
     }
     /**
      * error
@@ -272,18 +310,20 @@ class WxxLogger
      */
     public static function error($message, $category = '-')
     {
-        return self::write($message, self::LEVEL_ERROR, $category);
+        return self::getInstance()->write($message, self::LEVEL_ERROR, $category);
     }
+
     /**
-     * fatal
+     * alert
      * @param $message
      * @param string $category
      * @return bool
      */
-    public static function fatal($message, $category = '-')
+    public static function alert($message, $category = '-')
     {
-        return self::write($message, self::LEVEL_FATAL, $category);
+        return self::getInstance()->write($message, self::LEVEL_ALERT, $category);
     }
+
     /**
      *  debug
      * @param string|array $message 日志信息
@@ -292,30 +332,28 @@ class WxxLogger
      */
     public static function debug($message, $category = '-')
     {
-        return self::write($message, self::LEVEL_DEBUG, $category);
+        return self::getInstance()->write($message, self::LEVEL_DEBUG, $category);
     }
+
     /**
      * 写入日志消息
      * @param string|array $message 日志信息
-     * @param string $level 日志等级
+     * @param integer $level 日志等级
      * @param string $category 日志分类
      * @return bool
      */
-    public static function write($message, $level = self::LEVEL_INFO, $category = '-')
+    public function write($message, $level = self::LEVEL_INFO, $category = '-')
     {
-        $obj = self::getInstance();
         //按日志级别记录日志
-        if (! in_array($level, $obj->_levels)) {
+        $level = $this->getLevelName($level);
+        if (!in_array(strtolower($level), $this->_levels)) {
             return false;
         }
-        $obj->_logs[] = $obj->getLogInfo($message, $level, $category);
-        $obj->_logCount++;
-        if ($obj->autoFlush > 0 && $obj->_logCount >= $obj->autoFlush) {  //日志行数
-            $obj->flush();
-        } elseif (intval(memory_get_usage()/1024) >= $obj->_maxFileSize) {  //日志内存数
-            $obj->flush();
+        $this->_logs[] = $this->getLogInfo($message, $level, $category);
+        $this->_logCount++;
+        if ($this->autoFlush > 0 && $this->_logCount >= $this->autoFlush) {  //日志行数
+            $this->flush();
         }
-        return $obj;
     }
 
     /**
@@ -332,17 +370,17 @@ class WxxLogger
             return call_user_func($this->_prefix, $message, $level, $category, $timestamp);
         }
         $defaultTemplate['%T'] = $this->getTime($timestamp);
-        $defaultTemplate['%L'] = $this->getLevelName($level);
+        $defaultTemplate['%L'] = $level;
         $defaultTemplate['%P'] = $this->getProcessId();
         $defaultTemplate['%Q'] = $this->getRequestId();
         $defaultTemplate['%I'] = $this->getClientIp();
-        $defaultTemplate['%C'] = $category ?? '-';
+        $defaultTemplate['%C'] = $category ? : '-';
         $defaultTemplate['%S'] = '-';
         $template = [];
         $defaultTemplateArr = explode($this->_separator, $this->_defaultTemplate);
 
         foreach ($defaultTemplateArr as $v) { //按日志模板排序
-            $template[$v] = $defaultTemplate[$v] ?? '';
+            $template[$v] = isset($defaultTemplate[$v]) ? $defaultTemplate[$v] : '';
         }
 
         return join($this->_separator, $template) . $this->_separator;
@@ -350,10 +388,17 @@ class WxxLogger
 
     public function getLevelName($level)
     {
-        if (empty($this->_levelName)) {
-            $this->setLevelName(strtoupper($level));
-        }
-        return $this->_levelName;
+        $levelNames = [
+                self::LEVEL_EMERGENCY => 'EMERGENCY',
+                self::LEVEL_ALERT     => 'ALERT',
+                self::LEVEL_CRITICAL  => 'CRITICAL',
+                self::LEVEL_ERROR     => 'ERROR',
+                self::LEVEL_WARN      => 'WARNING',
+                self::LEVEL_NOTICE    => 'NOTICE',
+                self::LEVEL_INFO      => 'INFO',
+                self::LEVEL_DEBUG     => 'DEBUG',
+        ];
+        return isset($levelNames[$level]) ? $levelNames[$level] : 'UNKNOWN';
     }
 
     public function getProcessId()
@@ -402,15 +447,13 @@ class WxxLogger
     public function flush()
     {
         if ($this->_logCount > 0) {
-            $this->onFlush();
+            $this->onFlushFile($this->_logs);
+            unset($this->_logs);
             $this->_logs = [];
             $this->_logCount = 0;
         }
     }
-    public function onFlush()
-    {
-        $this->processLogs($this->_logs);
-    }
+
 
     /**
      * 格式化日志信息
@@ -447,31 +490,50 @@ class WxxLogger
      */
     private function export($var)
     {
-        return var_export($var, true);
+        return var_export($var, TRUE);
     }
+
     /**
      * 保存日志信息到文件
      * @param array $logs      日志信息
      * @throws Exception
      */
-    protected function processLogs(array $logs)
+    protected function onFlushFile(array $logs)
     {
         $logFile =  $this->getLogFile();
-        try {
-            if (!is_file($logFile)) {
-                touch($logFile);
+        $text = implode("\n", array_map([$this, 'formatMessage'], $logs)) . "\n";
+        if (($fp = @fopen($logFile, 'a')) === false) {
+            throw new Exception("Unable to append to log file: {$logFile}");
+        }
+        @flock($fp, LOCK_EX);
+        if ($this->_enableRotation) {
+            clearstatcache();
+        }
+        if ($this->_enableRotation && @filesize($logFile) > ($this->getMaxFileSize() * 1024)) {
+            $this->rotateFiles();
+            @flock($fp, LOCK_UN);
+            @fclose($fp);
+            $writeResult = @file_put_contents($logFile, $text, FILE_APPEND | LOCK_EX);
+            if ($writeResult === false) {
+                $error = error_get_last();
+                throw new \RuntimeException("Unable to export log through file!: {$error['message']}");
             }
-            $text = implode("\n", array_map([$this, 'formatMessage'], $logs)) . "\n";
-            if ($this->_enableRotation && @filesize($logFile) > ($this->getMaxFileSize() * 1024)) {
-                $this->rotateFiles();
+            $textSize = strlen($text);
+            if ($writeResult < $textSize) {
+                throw new \RuntimeException("Unable to export whole log through file! Wrote $writeResult out of $textSize bytes.");
             }
-            if (($fp = @fopen($logFile, 'a')) === false) {
-                throw new Exception("Unable to append to log file: {$logFile}");
+        } else {
+            $writeResult = @fwrite($fp, $text);
+            if ($writeResult === false) {
+                $error = error_get_last();
+                throw new \RuntimeException("Unable to export log through file!: {$error['message']}");
             }
-            @fwrite($fp, $text);
-            fclose($fp);
-        } catch (Exception $e) {
-            throw new Exception('logException:'.$e->getMessage());
+            $textSize = strlen($text);
+            if ($writeResult < $textSize) {
+                throw new \RuntimeException("Unable to export whole log through file! Wrote $writeResult out of $textSize bytes.");
+            }
+            @flock($fp, LOCK_UN);
+            @fclose($fp);
         }
     }
     /**
@@ -480,56 +542,70 @@ class WxxLogger
     protected function rotateFiles()
     {
         $logFile =  $this->getLogFile();
+        $logPathInfo = pathinfo($logFile);;
+        $logFileExt = $logPathInfo['extension'];
         $max  = $this->getMaxLogFiles();
-        for ($i = $max; $i > 0; --$i) {
-            $rotateFile = $logFile . '.' . $i;
+        $extLen = strlen($logFileExt);
+        $newLogFile = substr( $logFile, 0, -$extLen) . '%d.' . $logFileExt;
+        for ($i = $max; $i >= 0; --$i) {
+            $rotateFile =  ($i === 0) ?  $logFile : sprintf($newLogFile, $i);
             if (is_file($rotateFile)) {
                 if ($i === $max) {
-                    unlink($rotateFile);
-                } else {
-                    rename($rotateFile, $logFile.'.'.($i+1));
+                    @unlink($rotateFile);
+                    continue;
+                }
+                $newLogFile = sprintf($newLogFile, $i+1);
+                @copy($rotateFile, $newLogFile);
+                if ($i === 0) {
+                    $this->clearLogFile($rotateFile);
                 }
             }
         }
-        if (is_file($logFile)) {
-            rename($logFile, $logFile.'.1');
+
+    }
+
+    private function clearLogFile($rotateFile)
+    {
+        if ($filePointer = @fopen($rotateFile, 'a')) {
+            @ftruncate($filePointer, 0);
+            @fclose($filePointer);
         }
     }
+
     /**
-     * 生成文件名、行号和函数名
+     * 生成日志信息
      * @param $message
      * @param string $level
      * @param string $category
      * @return array
      */
-    protected function getLogInfo($message, $level = 'info', $category = '-')
+    protected function getLogInfo($message, $level, $category = '-')
     {
         $time = microtime(true);
         $traces = [];
-        $ts = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
-        array_pop($ts);
-        $count = 0;
-        foreach ($ts as $trace) {
-            if (isset($trace['file'], $trace['line']) &&  strpos($trace['file'], __FILE__) !== 0) {
-                unset($trace['object'], $trace['args']);
-                $traces[] = $trace;
-                if (++$count >= $this->_traceLevel) {
-                    break;
-                }
-            } elseif (!isset($trace['file'], $trace['line'])) {
-                $traces[] = $trace;
-                if (++$count >= $this->_traceLevel) {
-                    break;
+        if ($this->_traceLevel > 0) {
+            $ts = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
+            array_pop($ts); //删除入口脚本
+            $count = 0;
+            foreach ($ts as $trace) {
+                if (isset($trace['file'], $trace['line']) &&  strpos($trace['file'], __FILE__) !== 0) {
+                    unset($trace['object'], $trace['args']);
+                    $traces[] = $trace;
+                    if (++$count >= $this->_traceLevel) {
+                        break;
+                    }
                 }
             }
+            $category = $this->getCategory($category, $traces);
         }
-        $category = $this->getCategory($category, $traces);
-        if ($this->_traceLevel === 0) {
-            $traces = [];
-        }
-        return  [$message, $level, $category, $time, $traces];
+        return [$message, $level, $category, $time, $traces];
     }
 
+    /**
+     * @param string $category
+     * @param array $traces
+     * @return string
+     */
     protected function getCategory($category, $traces)
     {
         if ($category !== '-') {
@@ -540,19 +616,11 @@ class WxxLogger
                 $pathArr = pathinfo($traces[0]['file']);
                 $category = $pathArr['basename'] . ':' .  $traces[0]['line'];
             }
-        } else {
-            if (!empty($traces[1])) {
-                $category = '';
-                if (isset($traces[1]['class'])) {
-                    $category .= $traces[1]['class'];
-                }
-                if (isset($traces[1]['type'])) {
-                    $category .= $traces[1]['type'];
-                }
-                if (isset($traces[1]['function'])) {
-                    $category .= $traces[1]['function'];
-                }
-            }
+        } else if (!empty($traces[1])) {
+            $traces[1]['class'] = isset($traces[1]['class'])?$traces[1]['class']:'';
+            $traces[1]['type'] = isset($traces[1]['type']) ?  $traces[1]['type'] : '';
+            $traces[1]['function'] = isset($traces[1]['function']) ?  $traces[1]['function'] : '';
+            $category = $traces[1]['class'] . $traces[1]['type'] . $traces[1]['function'];
         }
         return $category;
     }
