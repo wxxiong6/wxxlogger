@@ -30,7 +30,7 @@ composer require wxxiong6/wxxlogger
       'traceLevel'  => 0,
       'maxFileSize' => 10240,
       'logFile'     => 'app.log',
-      'levels'      => ['error','warn','debug'],
+      'levels'      => ['error','warning', 'info','debug'],
     ];
     WxxLogger::getInstance()->setConfig($config);
     
@@ -40,6 +40,7 @@ composer require wxxiong6/wxxlogger
      
     WxxLogger::error(['mes'=>'error','code'=>100], '123123');
     WxxLogger::debug('debug');
+    WxxLogger::info('debug');
 ```
 #### traceLevel
    显示堆栈层数。参数为0时，日志信息少，但日志内容简洁。
@@ -71,10 +72,11 @@ Logger::info('info');
 ```PHP
 Logger::error('error');
 ```
-### changlog：
+### changelog：
     v1.0.0 第一版发布
     v2.0.0 增加是否切割日志、是否显示毫秒
-           修改多次调用fwrite，合并日志后，调用一次日志
-           修改时间时间函数，默认加关闭毫秒
+           修改日志写入文件方法，合并日志后，调用一次日志
+           修改时间函数，默认加关闭毫秒
            修改traceLevel=0时间，category默认时间文件名及行号
     v2.0.1 增加日志模板自定义功能
+           增加日志级别
