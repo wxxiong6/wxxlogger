@@ -1,4 +1,8 @@
-php 日志类 
+[![Build Status](https://travis-ci.org/wxxiong6/wxxlogger.svg?branch=master)](https://travis-ci.org/wxxiong6/wxxlogger)
+[![GitHub forks](https://img.shields.io/github/forks/wxxiong6/wxxlogger.svg)](https://github.com/wxxiong6/wxxlogger/network)
+[![Packagist](https://img.shields.io/packagist/v/wxxiong6/wxxlogger.svg)](https://packagist.org/packages/wxxiong6/wxxlogger)
+![Packagist](https://img.shields.io/packagist/dt/wxxiong6/wxxlogger)
+php 日志类
 ====
 默认日志文件名是application.log
 支持按天生成日志文件，每个日志文件内容可自定义大小。
@@ -9,9 +13,9 @@ php 日志类
 未超过时，会在程序运行结束后写入日志文件。
 
 ```
-17-12-14 04:33:19.6806[warn]:[Wxxiong6\WxxLogger\WxxLoggerTest->testWarn][75334][0.0.0.0]  : warn:1513225999  
+17-12-14 04:33:19.6806[warn]:[Wxxiong6\WxxLogger\WxxLoggerTest->testWarn][75334][0.0.0.0]  : warn:1513225999
  /Users/xiong/Sites/wxxlogger/WxxLoggerTest.php file:(line 42)
-17-12-14 04:33:23.6514[warn]:[Wxxiong6\WxxLogger\WxxLoggerTest->testWarn][75358][0.0.0.0]  : warn:1513226003  
+17-12-14 04:33:23.6514[warn]:[Wxxiong6\WxxLogger\WxxLoggerTest->testWarn][75358][0.0.0.0]  : warn:1513226003
  /Users/xiong/Sites/wxxlogger/WxxLoggerTest.php file:(line 42)
 ```
 
@@ -33,18 +37,18 @@ composer require wxxiong6/wxxlogger
       'levels'      => ['error','warning', 'info','debug'],
     ];
     WxxLogger::getInstance()->setConfig($config);
-    
+
     // 单个属性修改可以如用如下方法
     WxxLogger::getInstance()->setDefaultTemplate('%T|%L|%P|%I|%Q|%C');
     WxxLogger::getInstance()->setXXX($val);
-     
+
     WxxLogger::error(['mes'=>'error','code'=>100], '123123');
     WxxLogger::debug('debug');
     WxxLogger::info('debug');
 ```
 #### traceLevel
    显示堆栈层数。参数为0时，日志信息少，但日志内容简洁。
-#### prefix 
+#### prefix
    日志回调函数，可通过些函数显示日志自定义标识
 #### levels
    定入日志级别，未定义的级别不会写入日志中
@@ -57,7 +61,7 @@ composer require wxxiong6/wxxlogger
  - %I - Client IP 来源客户端IP; Cli模式下为local。取值优先级为：HTTP_X_REAL_IP > HTTP_X_FORWARDED_FOR > REMOTE_ADDR
  - %C - Class::Action 类名::方法名，如UserService::getUserInfo。不在类中使用时，记录函数名
  - %S - 占位符
-    
+
 ### 常用方法：
 
 ####  debug
