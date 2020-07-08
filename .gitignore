@@ -1,2 +1,7 @@
- .idea/
- runtime/
+.idea/
+.phpunit.result.cache
+composer.lock
+vendor/
+.php_cs.cache
+.composer.lock
+runtime/
