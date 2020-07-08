@@ -26,7 +26,8 @@ composer require wxxiong6/wxxlogger
 ```
 ### 初始化配置
 ```PHP
-    use wxxiong6\wxxLogger\WxxLogger;
+    use wxxiong6\logger\Logger;
+
     $config = [
       'defaultTemplate' = '%T|%L|%P|%I|%Q|%C',
       'logPath' => __DIR__.'/runtime/logs',
@@ -36,18 +37,18 @@ composer require wxxiong6/wxxlogger
       'logFile'     => 'app.log',
       'levels'      => ['error','warning', 'info','debug'],
     ];
-    WxxLogger::getInstance()->setConfig($config);
+    Logger::getInstance()->setConfig($config);
 
     // 单个属性修改可以如用如下方法
-    WxxLogger::getInstance()->setDefaultTemplate('%T|%L|%P|%I|%Q|%C');
-    WxxLogger::getInstance()->setXXX($val);
+    Logger::getInstance()->setDefaultTemplate('%T|%L|%P|%I|%Q|%C');
+    Logger::getInstance()->setXXX('xxx');
 
-    WxxLogger::error(['mes'=>'error','code'=>100], '123123');
+    WxxLogger::error(['mes'=>'error','code'=>100]);
     WxxLogger::debug('debug');
     WxxLogger::info('debug');
 ```
 #### traceLevel
-   显示堆栈层数。参数为0时，日志信息少，但日志内容简洁。
+   显示堆栈层数。参数为0时，日志信息少，但日志内容简洁,性能高。
 #### prefix
    日志回调函数，可通过些函数显示日志自定义标识
 #### levels
