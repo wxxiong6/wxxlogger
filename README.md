@@ -84,3 +84,5 @@ Logger::error('error');
            修改traceLevel=0时间，category默认时间文件名及行号
     v2.0.1 增加日志模板自定义功能
            增加日志级别
+    v3.0.0 重构项目
+
