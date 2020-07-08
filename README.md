@@ -14,9 +14,9 @@ php 日志类
 
 ```
 17-12-14 04:33:19.6806[warn]:[Wxxiong6\WxxLogger\WxxLoggerTest->testWarn][75334][0.0.0.0]  : warn:1513225999
- /Users/xiong/Sites/wxxlogger/WxxLoggerTest.php file:(line 42)
+ /Sites/wxxlogger/WxxLoggerTest.php file:(line 42)
 17-12-14 04:33:23.6514[warn]:[Wxxiong6\WxxLogger\WxxLoggerTest->testWarn][75358][0.0.0.0]  : warn:1513226003
- /Users/xiong/Sites/wxxlogger/WxxLoggerTest.php file:(line 42)
+ /Sites/wxxlogger/WxxLoggerTest.php file:(line 42)
 ```
 
 ### 安装
