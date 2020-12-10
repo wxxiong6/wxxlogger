@@ -1,7 +1,9 @@
 <?php
 /**
  * @author  wxxiong <wxxiong6@gmail.com>
+ *
  * @version v3.0.0
+ *
  * @see    https://github.com/wxxiong6/wxxlogger/blob/master/README.md
  */
 
@@ -19,7 +21,7 @@ use Exception;
  *      'maxLogFiles' => 5,
  *      'traceLevel'  => 0,
  *      'maxFileSize' => 10240,
- *      'logFile'     => 'app.log',
+ *      'logFile'     => 'app'.date("ymd").'.log',
  *      'levels'      => ['error','warning', 'alert', 'info', 'debug'],
  *    ];
  *    logger::getInstance()->setConfig($config);
@@ -130,7 +132,7 @@ class Logger
      *
      * @since 2.0.0
      */
-    private $_enableRotation = true;
+    private $_enableRotation = false;
     /**
      * @var bool 开启毫秒.
      *           Defaults to false.
@@ -193,7 +195,6 @@ class Logger
             return $this->$property;
         }
     }
-
 
     /**
      * 设置配置.
@@ -484,7 +485,7 @@ class Logger
         $prefix = $this->getMessagePrefix($message, $level, $category, $timestamp);
 
         return   "{$prefix} $message"
-                    .(empty($stack) ? '' : "\n". implode("\n", $stack));
+                    .(empty($stack) ? '' : "\n".implode("\n", $stack));
     }
 
     /**
@@ -501,35 +502,43 @@ class Logger
         if (false === ($fp = @fopen($logFile, 'a'))) {
             throw new Exception("Unable to append to log file: {$logFile}");
         }
-        @flock($fp, LOCK_EX);
-        if ($this->_enableRotation) {
-            clearstatcache();
-        }
-        if ($this->_enableRotation && @filesize($logFile) > ($this->getMaxFileSize() * 1024)) {
-            $this->rotateFiles();
-            @flock($fp, LOCK_UN);
-            @fclose($fp);
-            $writeResult = @file_put_contents($logFile, $text, FILE_APPEND | LOCK_EX);
-            if (false === $writeResult) {
-                $error = error_get_last();
-                throw new \RuntimeException("Unable to export log through file!: {$error['message']}");
+
+        try {
+            @flock($fp, LOCK_EX);
+            if ($this->_enableRotation) {
+                clearstatcache();
             }
-            $textSize = \strlen($text);
-            if ($writeResult < $textSize) {
-                throw new \RuntimeException("Unable to export whole log through file! Wrote $writeResult out of $textSize bytes.");
+            if ($this->_enableRotation && @filesize($logFile) > ($this->getMaxFileSize() * 1024)) {
+                $this->rotateFiles();
+                @flock($fp, LOCK_UN);
+                @fclose($fp);
+                $writeResult = @file_put_contents($logFile, $text, FILE_APPEND | LOCK_EX);
+                if (false === $writeResult) {
+                    $error = error_get_last();
+                    throw new \RuntimeException("Unable to export log through file!: {$error['message']}");
+                }
+                $textSize = \strlen($text);
+                if ($writeResult < $textSize) {
+                    throw new \RuntimeException("Unable to export whole log through file! Wrote $writeResult out of $textSize bytes.");
+                }
+            } else {
+                $writeResult = @fwrite($fp, $text);
+                if (false === $writeResult) {
+                    $error = error_get_last();
+                    throw new \RuntimeException("Unable to export log through file!: {$error['message']}");
+                }
+                $textSize = \strlen($text);
+                if ($writeResult < $textSize) {
+                    throw new \RuntimeException("Unable to export whole log through file! Wrote $writeResult out of $textSize bytes.");
+                }
+                @flock($fp, LOCK_UN);
+                @fclose($fp);
             }
-        } else {
-            $writeResult = @fwrite($fp, $text);
-            if (false === $writeResult) {
-                $error = error_get_last();
-                throw new \RuntimeException("Unable to export log through file!: {$error['message']}");
+        } catch (Exception $e) {
+            if (false === ($fp = @fopen($logFile, 'w+'))) {
+                @flock($fp, LOCK_UN);
+                @fclose($fp);
             }
-            $textSize = \strlen($text);
-            if ($writeResult < $textSize) {
-                throw new \RuntimeException("Unable to export whole log through file! Wrote $writeResult out of $textSize bytes.");
-            }
-            @flock($fp, LOCK_UN);
-            @fclose($fp);
         }
     }
 
