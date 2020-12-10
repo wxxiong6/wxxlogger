@@ -2,8 +2,8 @@
 [![GitHub forks](https://img.shields.io/github/forks/wxxiong6/wxxlogger.svg)](https://github.com/wxxiong6/wxxlogger/network)
 [![Packagist](https://img.shields.io/packagist/v/wxxiong6/wxxlogger.svg)](https://packagist.org/packages/wxxiong6/wxxlogger)
 ![Packagist](https://img.shields.io/packagist/dt/wxxiong6/wxxlogger)
-php 日志类
-====
+## php 日志类
+
 默认日志文件名是application.log
 支持按天生成日志文件，每个日志文件内容可自定义大小。
 
@@ -26,8 +26,7 @@ composer require wxxiong6/wxxlogger
 ```
 ### 初始化配置
 ```PHP
-    use wxxiong6\logger\Logger;
-
+    use wxxiong6\wxxLogger\Logger;
     $config = [
       'defaultTemplate' = '%T|%L|%P|%I|%Q|%C',
       'logPath' => __DIR__.'/runtime/logs',
@@ -41,14 +40,14 @@ composer require wxxiong6/wxxlogger
 
     // 单个属性修改可以如用如下方法
     Logger::getInstance()->setDefaultTemplate('%T|%L|%P|%I|%Q|%C');
-    Logger::getInstance()->setXXX('xxx');
+    Logger::getInstance()->setXXX($val);
 
-    WxxLogger::error(['mes'=>'error','code'=>100]);
-    WxxLogger::debug('debug');
-    WxxLogger::info('debug');
+    Logger::error(['mes'=>'error','code'=>100], '123123');
+    Logger::debug('debug');
+    Logger::info('debug');
 ```
 #### traceLevel
-   显示堆栈层数。参数为0时，日志信息少，但日志内容简洁,性能高。
+   显示堆栈层数。参数为0时，日志信息少，但日志内容简洁。
 #### prefix
    日志回调函数，可通过些函数显示日志自定义标识
 #### levels
